@@ -1,10 +1,16 @@
 "use client";
+import { useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../../lib/firebaseConfig";
 import { useRouter } from "next/navigation";
+import Sidebar from "../components/Sidebar";
+import CreateTestForm from "../components/CreateTestForm";
+import TestDetailsForm from "../components/TestDetailsForm";
+import QuestionsForm from "../components/QuestionsForm";
 
 export default function UserDashboard() {
   const router = useRouter();
+  const [activeForm, setActiveForm] = useState("create-test");
 
   const logout = async () => {
     await signOut(auth);
@@ -12,15 +18,14 @@ export default function UserDashboard() {
   };
 
   return (
-    <div className="p-8 text-center">
-      <h1 className="text-3xl font-bold text-green-600 mb-4">User Dashboard</h1>
-      <p className="mb-4">Welcome, User! 🚀</p>
-      <button
-        onClick={logout}
-        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-      >
-        Logout
-      </button>
+    <div className="flex h-screen max-w-7xl bg-gray-100">
+      <Sidebar setActiveForm={setActiveForm} logout={logout} />
+
+      <div className="flex-1 p-6 overflow-y-auto">
+        {activeForm === "create-test" && <CreateTestForm />}
+        {activeForm === "test-details" && <TestDetailsForm />}
+        {activeForm === "questions" && <QuestionsForm />}
+      </div>
     </div>
   );
 }
