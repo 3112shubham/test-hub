@@ -1,7 +1,15 @@
 "use client";
+import { usePathname } from "next/navigation";
+
 export default function Sidebar({ setActiveForm, logout }) {
+  const pathname = usePathname();
+
+  if (pathname !== "/user") {
+    return null;
+  }
+
   return (
-    <div className="w-64 bg-white shadow-lg flex flex-col justify-between">
+    <div className="w-64 bg-white shadow-lg flex flex-col justify-between h-[90vh] sticky top-[10vh] rounded-2xl">
       <div>
         <h2 className="text-2xl font-bold text-center py-6 border-b">
           Dashboard
@@ -10,25 +18,17 @@ export default function Sidebar({ setActiveForm, logout }) {
           <li>
             <button
               onClick={() => setActiveForm("create-test")}
-              className="w-full text-left p-2 rounded hover:bg-gray-200"
+              className="w-full text-left p-2 rounded hover:bg-gray-200 transition-colors"
             >
               🧩 Create Test
             </button>
           </li>
           <li>
             <button
-              onClick={() => setActiveForm("test-details")}
-              className="w-full text-left p-2 rounded hover:bg-gray-200"
+              onClick={() => setActiveForm("view-tests")}
+              className="w-full text-left p-2 rounded hover:bg-gray-200 transition-colors"
             >
-              📄 Test Details
-            </button>
-          </li>
-          <li>
-            <button
-              onClick={() => setActiveForm("questions")}
-              className="w-full text-left p-2 rounded hover:bg-gray-200"
-            >
-              ❓ Questions
+              📋 View Tests
             </button>
           </li>
         </ul>
@@ -36,7 +36,7 @@ export default function Sidebar({ setActiveForm, logout }) {
 
       <button
         onClick={logout}
-        className="m-4 p-2 bg-red-500 text-white rounded hover:bg-red-600"
+        className="m-4 p-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
       >
         Logout
       </button>
