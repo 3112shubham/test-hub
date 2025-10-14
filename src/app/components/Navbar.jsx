@@ -24,11 +24,11 @@ export default function Navbar() {
   return (
     <nav
       className="
-      fixed top-4 left-1/2 -translate-x-1/2 
-      z-50 w-full max-w-5xl
+      fixed top-0 left-1/2 -translate-x-1/2 
+      z-50 w-full
       bg-white/90 
       backdrop-blur-xl border border-white/20
-      rounded-2xl shadow-lg 
+      shadow-lg 
       flex items-center justify-between px-6 py-3
       transition-all duration-300
     "

@@ -9,7 +9,7 @@ export default function Sidebar({ setActiveForm, logout }) {
   }
 
   return (
-    <div className="w-64 bg-white shadow-lg flex flex-col justify-between h-[90vh] sticky top-[10vh] rounded-2xl">
+    <div className="w-64 bg-white shadow-lg flex flex-col justify-between min-h-[70vh] sticky top-[10vh] rounded-2xl">
       <div>
         <h2 className="text-2xl font-bold text-center py-6 border-b">
           Dashboard

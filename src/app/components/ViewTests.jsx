@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { getUserTests, deleteTest } from "../../lib/testOperations";
+import { exportTestToExcel } from "@/utils/ExportToExcel";
 
 export default function ViewTests() {
   const [tests, setTests] = useState([]);
@@ -47,19 +48,7 @@ export default function ViewTests() {
   const exportTest = () => {
     if (!selectedTest) return;
 
-    const testData = {
-      ...selectedTest,
-      exportDate: new Date().toISOString(),
-    };
-
-    const dataStr = JSON.stringify(testData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `test-${selectedTest.testName || "export"}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    exportTestToExcel(selectedTest);
   };
 
   const formatDate = (timestamp) => {
