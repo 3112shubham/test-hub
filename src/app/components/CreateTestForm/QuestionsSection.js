@@ -6,10 +6,8 @@ export default function QuestionsSection({
   setQuestion,
   options,
   setOptions,
-  correctOption,
-  setCorrectOption,
-  optionCount,
-  setOptionCount,
+  correctOptions, // Changed from correctOption
+  setCorrectOptions, // Changed from setCorrectOption
   questions,
   handleAddQuestion,
   deleteQuestion,
@@ -22,10 +20,8 @@ export default function QuestionsSection({
         setQuestion={setQuestion}
         options={options}
         setOptions={setOptions}
-        correctOption={correctOption}
-        setCorrectOption={setCorrectOption}
-        optionCount={optionCount}
-        setOptionCount={setOptionCount}
+        correctOptions={correctOptions}
+        setCorrectOptions={setCorrectOptions}
         handleAddQuestion={handleAddQuestion}
       />
 
