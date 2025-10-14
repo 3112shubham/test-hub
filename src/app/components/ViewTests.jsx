@@ -62,9 +62,9 @@ export default function ViewTests() {
       await publishTest(selectedTest.id);
       // Update local state
       setTests((prev) =>
-        prev.map((t) => (t.id === selectedTest.id ? { ...t, status: "published" } : t))
+        prev.map((t) => (t.id === selectedTest.id ? { ...t, status: "active" } : t))
       );
-      setSelectedTest((s) => ({ ...s, status: "published" }));
+      setSelectedTest((s) => ({ ...s, status: "active" }));
       alert("Test published. You can now copy the link to share it.");
     } catch (error) {
       console.error(error);
@@ -83,9 +83,9 @@ export default function ViewTests() {
     try {
       await unpublishTest(selectedTest.id);
       setTests((prev) =>
-        prev.map((t) => (t.id === selectedTest.id ? { ...t, status: "unpublished" } : t))
+        prev.map((t) => (t.id === selectedTest.id ? { ...t, status: "inactive" } : t))
       );
-      setSelectedTest((s) => ({ ...s, status: "unpublished" }));
+      setSelectedTest((s) => ({ ...s, status: "inactive" }));
       alert("Test unpublished successfully.");
     } catch (error) {
       console.error(error);
@@ -285,7 +285,7 @@ export default function ViewTests() {
                     </button>
 
                     {/* Publish / Unpublish / Copy Link */}
-                    {selectedTest.status === "published" ? (
+                    {selectedTest.status === "active" ? (
                       <>
                         
                         <button

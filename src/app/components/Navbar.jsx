@@ -10,7 +10,7 @@ export default function Navbar() {
 
   const path = usePathname();
 
-  if (path === "/login") return <></>;
+  if (path === "/login" || path.startsWith("/test/")) return <></>;
 
   const logout = async () => {
     try {

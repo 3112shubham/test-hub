@@ -27,7 +27,7 @@ export const createTest = async (testData) => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       // Use status to represent visibility: 'published' or 'unpublished' (default)
-      status: "unpublished",
+      status: "inactive",
       responses: [],
       totalResponses: 0,
     };
@@ -45,7 +45,7 @@ export const publishTest = async (testId) => {
   try {
     const testRef = doc(db, "tests", testId);
     await updateDoc(testRef, {
-      status: "published",
+      status: "active",
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
@@ -59,7 +59,7 @@ export const unpublishTest = async (testId) => {
   try {
     const testRef = doc(db, "tests", testId);
     await updateDoc(testRef, {
-      status: "unpublished",
+      status: "inactive",
       updatedAt: serverTimestamp(),
     });
   } catch (error) {

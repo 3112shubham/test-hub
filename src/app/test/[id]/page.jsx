@@ -6,10 +6,12 @@ import { getTestById } from "@/lib/testOperations";
 // with status === 'published' will be shown; others return notFound.
 
 export default async function Page({ params }) {
-  const { id } = params;
+  // Next.js requires awaiting `params` when using dynamic route params in server components
+  // See: https://nextjs.org/docs/messages/sync-dynamic-apis
+  const { id } = await params;
   try {
     const test = await getTestById(id);
-    if (!test || test.status !== "published") {
+    if (!test || test.status !== "active") {
       return (
         <div className="p-8 max-w-3xl mx-auto bg-white rounded-lg shadow">
           <h2 className="text-2xl font-semibold mb-4">Test not found</h2>
