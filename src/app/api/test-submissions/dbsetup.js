@@ -1,24 +1,36 @@
-import { MongoClient } from 'mongodb';
+// dbsetup.js
+import { MongoClient } from "mongodb";
 
 const uri = process.env.NEXT_PUBLIC_MONGODB_URI;
-if (!uri) {
-  throw new Error('MONGODB_URI env var not set');
+if (!uri) throw new Error("MONGODB_URI env var not set");
+
+// Global cache across hot reloads (Vercel/Next.js dev)
+let cached = global._mongo;
+if (!cached) {
+  cached = global._mongo = { conn: null, promise: null };
 }
 
-let cachedClient = global._mongoClient;
-let cachedDb = global._mongoDb;
+export async function connectToDatabase(dbName = "test-hub") {
+  if (cached.conn) return cached.conn;
 
-export async function connectToDatabase(dbName = 'test-hub') {
-  if (cachedClient && cachedDb) return { client: cachedClient, db: cachedDb };
+  if (!cached.promise) {
+    const opts = {
+      maxPoolSize: 10,
+      minPoolSize: 1,
+      socketTimeoutMS: 60000, // 1 min
+      connectTimeoutMS: 20000,
+      serverSelectionTimeoutMS: 30000,
+      tls: true,
+      retryWrites: true,
+    };
 
-  const client = new MongoClient(uri, { connectTimeoutMS: 10000 });
-  await client.connect();
-  const db = client.db(dbName);
+    const client = new MongoClient(uri, opts);
+    cached.promise = client.connect().then((client) => ({
+      client,
+      db: client.db(dbName),
+    }));
+  }
 
-  cachedClient = client;
-  cachedDb = db;
-  global._mongoClient = client;
-  global._mongoDb = db;
-
-  return { client, db };
+  cached.conn = await cached.promise;
+  return cached.conn;
 }

@@ -1,6 +1,7 @@
 import { connectToDatabase } from '../dbsetup';
 import { NextResponse } from 'next/server';
 import { addTestResponse } from '@/lib/testOperations';
+export const runtime = "nodejs";
 
 export async function POST(req) {
   try {
