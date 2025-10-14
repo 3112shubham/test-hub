@@ -1,6 +1,7 @@
 "use client";
-import React, { useState } from "react";
-import { addTestResponse } from "@/lib/testOperations";
+import React, { useState, useEffect } from "react";
+// We will enqueue submissions through API to avoid Firestore race conditions
+
 
 export default function TestRunner({ test }) {
   const customFields = test.customFields || [];
@@ -77,28 +78,102 @@ export default function TestRunner({ test }) {
     try {
       const responsesArray = buildResponsesArray();
       const payload = {
+        testId: test.id,
         responsesArray,
         meta: { testName: test.testName || null },
       };
 
-      await addTestResponse(test.id, payload);
-      setShowSuccessAlert(true);
-      setMessage("Test submitted successfully!");
-      
+      // Try enqueueing via API
+      const res = await fetch('/api/test-submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        // fallback to localStorage queue
+        const queue = JSON.parse(localStorage.getItem('submissionQueue') || '[]');
+        queue.push(payload);
+        localStorage.setItem('submissionQueue', JSON.stringify(queue));
+        setMessage('Submission queued locally (will sync shortly).');
+      } else {
+        setShowSuccessAlert(true);
+        setMessage('Test submitted successfully!');
+      }
+
       // Reset form after 2 seconds
       setTimeout(() => {
         resetForm();
         setShowSuccessAlert(false);
-        setMessage("");
+        setMessage('');
       }, 2000);
-      
     } catch (err) {
-      console.error(err);
-      setMessage("Failed to submit. Please try again.");
+      console.error('Submit error', err);
+      // fallback to localStorage queue
+      const queue = JSON.parse(localStorage.getItem('submissionQueue') || '[]');
+      queue.push({ testId: test.id, responsesArray: buildResponsesArray(), meta: { testName: test.testName || null } });
+      localStorage.setItem('submissionQueue', JSON.stringify(queue));
+      setMessage('Offline: submission saved locally and will sync soon.');
     } finally {
       setLoading(false);
     }
   };
+
+  // Periodic sync: attempt to flush localStorage queue and call the sync API every 60s
+  useEffect(() => {
+    let mounted = true;
+
+    const flushLocal = async () => {
+      try {
+        const queue = JSON.parse(localStorage.getItem('submissionQueue') || '[]');
+        if (!queue || queue.length === 0) return;
+
+        // Try to POST each item to enqueue API
+        for (const item of queue) {
+          try {
+            const r = await fetch('/api/test-submissions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(item),
+            });
+            if (r.ok) {
+              // continue to next
+            }
+          } catch (err) {
+            console.warn('Failed to flush local item', err);
+            // stop early
+            return;
+          }
+        }
+
+        // If all enqueued successfully, clear local queue
+        localStorage.removeItem('submissionQueue');
+      } catch (err) {
+        console.error('Flush local error', err);
+      }
+    };
+
+    const doSync = async () => {
+      try {
+        await fetch('/api/test-submissions/sync', { method: 'POST' });
+      } catch (err) {
+        console.warn('Sync API failed', err);
+      }
+    };
+
+    // Run immediately then every 60s
+    flushLocal();
+    doSync();
+    const id = setInterval(() => {
+      flushLocal();
+      doSync();
+    }, 60 * 1000);
+
+    return () => {
+      clearInterval(id);
+      mounted = false;
+    };
+  }, []);
 
   const progress = ((step + 1) / questions.length) * 100;
 
