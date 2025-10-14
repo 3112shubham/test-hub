@@ -139,8 +139,8 @@ export default function QuestionForm({
 
           <div className="flex justify-between items-center mt-3">
             <p className="text-sm text-gray-500">
-              Minimum 2 options required. Click "Add Option" to add more
-              choices.
+              Minimum 2 options required. Click &quot;Add Option&quot; to add
+              more choices.
             </p>
             <button
               type="button"
