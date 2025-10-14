@@ -1,32 +1,22 @@
 "use client";
-import { useState, useEffect } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "../lib/firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+export default function HomePage() {
   const router = useRouter();
-<<<<<<< HEAD
-  // Avoid performing navigation during render — move to an effect
+
   useEffect(() => {
-    // replace condition `1` with your actual auth check or condition
-    if (true) {
+    // Check for a simple `auth` cookie set by the login flow.
+    // If absent, redirect to /login; otherwise redirect to /user.
+    // (This is a lightweight client-side redirect — middleware-based
+    // protection is recommended for production.)
+    const hasAuth = document.cookie.split(";").some((c) => c.trim().startsWith("auth="));
+    if (!hasAuth) {
       router.push("/login");
+    } else {
+      router.push("/user");
     }
   }, [router]);
-  
-  return (
-    <>
-    </>
-  );
-=======
-  if (1) {
-    router.push("/login");
-  }
-  return <></>;
->>>>>>> e8c5e91beba7bd33f83a34a8b52b9c9da1aef0d2
+
+  return null;
 }
