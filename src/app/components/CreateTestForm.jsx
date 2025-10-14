@@ -24,12 +24,12 @@ export default function CreateTestForm() {
   const [batch, setBatch] = useState("");
   const [customFields, setCustomFields] = useState([]);
 
-  // Questions Management
+  // Questions Management - UPDATED for multiple correct options
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);
-  const [correctOption, setCorrectOption] = useState(0);
+  const [correctOptions, setCorrectOptions] = useState([]); // Changed from correctOption to correctOptions (array)
   const [questions, setQuestions] = useState([]);
-  const [optionCount, setOptionCount] = useState(4);
+  // Removed optionCount since we're using dynamic options now
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeSection, setActiveSection] = useState("basic");
@@ -92,35 +92,49 @@ export default function CreateTestForm() {
     }
 
     if (savedQuestions) {
-      setQuestions(JSON.parse(savedQuestions));
+      const parsedQuestions = JSON.parse(savedQuestions);
+      // Convert old format to new format if needed
+      const updatedQuestions = parsedQuestions.map((q) => {
+        if (q.correctOption !== undefined && q.correctOptions === undefined) {
+          // Convert from single correct option to multiple
+          return {
+            ...q,
+            correctOptions: [q.correctOption],
+            correctOption: undefined, // Remove old field
+          };
+        }
+        return q;
+      });
+      setQuestions(updatedQuestions);
     }
   }, []);
 
-  // Update options when optionCount changes
-  useEffect(() => {
-    setOptions((prev) => {
-      const newOptions = [...prev];
-      while (newOptions.length < optionCount) newOptions.push("");
-      while (newOptions.length > optionCount) newOptions.pop();
-      return newOptions;
-    });
-    if (correctOption >= optionCount) setCorrectOption(0);
-  }, [optionCount, correctOption]);
+  // Remove the optionCount useEffect since we're using dynamic options
 
   const handleAddQuestion = (e) => {
     e.preventDefault();
+
+    // Validate
+    if (correctOptions.length === 0) {
+      alert("Please select at least one correct option");
+      return;
+    }
+
     const newQuestion = {
       question,
       options: options.filter((opt) => opt.trim() !== ""),
-      correctOption,
+      correctOptions, // Now using array of correct option indices
+      type: correctOptions.length > 1 ? "multiple" : "single",
     };
+
     const updatedQuestions = [...questions, newQuestion];
     setQuestions(updatedQuestions);
     localStorage.setItem("questions", JSON.stringify(updatedQuestions));
 
+    // Reset form
     setQuestion("");
-    setOptions(Array(optionCount).fill(""));
-    setCorrectOption(0);
+    setOptions(["", ""]);
+    setCorrectOptions([]);
   };
 
   const deleteQuestion = (index) => {
@@ -145,9 +159,8 @@ export default function CreateTestForm() {
     setCustomFields([]);
     setQuestion("");
     setOptions(["", ""]);
-    setCorrectOption(0);
+    setCorrectOptions([]); // Reset to empty array
     setQuestions([]);
-    setOptionCount(4);
     setActiveSection("basic");
 
     localStorage.removeItem("createTest");
@@ -158,6 +171,10 @@ export default function CreateTestForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    if (!isFormValid()) {
+      console.log("Form is not valid, preventing submission");
+      return;
+    }
 
     try {
       const user = auth.currentUser;
@@ -222,15 +239,31 @@ export default function CreateTestForm() {
   };
 
   const isFormValid = () => {
-    return testName && domain && duration && maxMarks && questions.length > 0;
+    const isValid = testName && questions.length > 0;
+
+    console.log("Form Validation:", {
+      testName: !!testName,
+      questionsLength: questions.length > 0,
+      isFormValid: isValid,
+    });
+
+    return isValid;
   };
 
   const getProgressPercentage = () => {
     let progress = 0;
-    if (testName) progress += 20;
-    if (domain) progress += 20;
-    if (duration && maxMarks) progress += 20;
-    if (questions.length > 0) progress += 40;
+
+    // Basic Info section complete (33%)
+    if (testName && domain) progress += 33;
+
+    // Test Details section complete (33%)
+    // Since you removed the fields, we'll consider this section always complete
+    // or base it on customFields if needed
+    progress += 33;
+
+    // Questions section complete (34%)
+    if (questions.length > 0) progress += 34;
+
     return progress;
   };
 
@@ -281,10 +314,8 @@ export default function CreateTestForm() {
             setQuestion={setQuestion}
             options={options}
             setOptions={setOptions}
-            correctOption={correctOption}
-            setCorrectOption={setCorrectOption}
-            optionCount={optionCount}
-            setOptionCount={setOptionCount}
+            correctOptions={correctOptions} // Updated prop name
+            setCorrectOptions={setCorrectOptions} // Updated prop name
             questions={questions}
             handleAddQuestion={handleAddQuestion}
             deleteQuestion={deleteQuestion}

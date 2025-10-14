@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
+<<<<<<< HEAD
   // Avoid performing navigation during render — move to an effect
   useEffect(() => {
     // replace condition `1` with your actual auth check or condition
@@ -22,4 +23,10 @@ export default function LoginPage() {
     <>
     </>
   );
+=======
+  if (1) {
+    router.push("/login");
+  }
+  return <></>;
+>>>>>>> e8c5e91beba7bd33f83a34a8b52b9c9da1aef0d2
 }
