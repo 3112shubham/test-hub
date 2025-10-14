@@ -26,7 +26,8 @@ export const createTest = async (testData) => {
       createdByEmail: user.email,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      status: "active",
+      // Use status to represent visibility: 'published' or 'unpublished' (default)
+      status: "unpublished",
       responses: [],
       totalResponses: 0,
     };
@@ -35,6 +36,34 @@ export const createTest = async (testData) => {
     return { id: docRef.id, ...testWithMetadata };
   } catch (error) {
     console.error("Error creating test:", error);
+    throw error;
+  }
+};
+
+// Publish a test (set status to 'published')
+export const publishTest = async (testId) => {
+  try {
+    const testRef = doc(db, "tests", testId);
+    await updateDoc(testRef, {
+      status: "published",
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error publishing test:", error);
+    throw error;
+  }
+};
+
+// Unpublish a test (set status to 'unpublished')
+export const unpublishTest = async (testId) => {
+  try {
+    const testRef = doc(db, "tests", testId);
+    await updateDoc(testRef, {
+      status: "unpublished",
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error unpublishing test:", error);
     throw error;
   }
 };

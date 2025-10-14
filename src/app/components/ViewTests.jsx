@@ -1,6 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getUserTests, deleteTest } from "../../lib/testOperations";
+import {
+  getUserTests,
+  deleteTest,
+  publishTest,
+  unpublishTest,
+} from "../../lib/testOperations";
 import { exportTestToExcel } from "@/utils/ExportToExcel";
 
 export default function ViewTests() {
@@ -49,6 +54,65 @@ export default function ViewTests() {
     if (!selectedTest) return;
 
     exportTestToExcel(selectedTest);
+  };
+
+  const handlePublish = async () => {
+    if (!selectedTest) return;
+    try {
+      await publishTest(selectedTest.id);
+      // Update local state
+      setTests((prev) =>
+        prev.map((t) => (t.id === selectedTest.id ? { ...t, status: "published" } : t))
+      );
+      setSelectedTest((s) => ({ ...s, status: "published" }));
+      alert("Test published. You can now copy the link to share it.");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to publish test. Please try again.");
+    }
+  };
+
+  const handleUnpublish = async () => {
+    if (!selectedTest) return;
+    if (
+      !window.confirm(
+        "Are you sure you want to unpublish this test? It will no longer be publicly accessible."
+      )
+    )
+      return;
+    try {
+      await unpublishTest(selectedTest.id);
+      setTests((prev) =>
+        prev.map((t) => (t.id === selectedTest.id ? { ...t, status: "unpublished" } : t))
+      );
+      setSelectedTest((s) => ({ ...s, status: "unpublished" }));
+      alert("Test unpublished successfully.");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to unpublish test. Please try again.");
+    }
+  };
+
+  const copyLink = async () => {
+    if (!selectedTest) return;
+    const url = `${window.location.origin}/test/${selectedTest.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Public link copied to clipboard:\n+" + url);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        alert("Public link copied to clipboard:\n" + url);
+      } catch (e) {
+        prompt("Copy this link", url);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const formatDate = (timestamp) => {
@@ -219,6 +283,36 @@ export default function ViewTests() {
                       <span>📥</span>
                       <span>Export</span>
                     </button>
+
+                    {/* Publish / Unpublish / Copy Link */}
+                    {selectedTest.status === "published" ? (
+                      <>
+                        
+                        <button
+                          onClick={handleUnpublish}
+                          className="bg-yellow-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-yellow-700 transition-colors flex items-center space-x-2"
+                        >
+                          <span>🚫</span>
+                          <span>Unpublish</span>
+                        </button>
+                        <button
+                          onClick={copyLink}
+                          className="bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                        >
+                          <span>🔗</span>
+                          <span>Copy Link</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={handlePublish}
+                        className="bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                      >
+                        <span>📣</span>
+                        <span>Publish</span>
+                      </button>
+                    )}
+
                     <button
                       onClick={() => handleDeleteTest(selectedTest.id)}
                       className="bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center space-x-2"
