@@ -10,10 +10,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
-  router.push("/login");
-  
-  return (
-    <>
-    </>
-  );
+  if (1) {
+    router.push("/login");
+  }
+  return <></>;
 }

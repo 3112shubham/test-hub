@@ -51,14 +51,14 @@ export default function QuestionsList({
                   <div
                     key={optIndex}
                     className={`flex items-center space-x-2 p-2 rounded ${
-                      optIndex === q.correctOption
+                      q.correctOptions && q.correctOptions.includes(optIndex)
                         ? "bg-green-50 border border-green-200"
                         : "bg-gray-50"
                     }`}
                   >
                     <div
                       className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                        optIndex === q.correctOption
+                        q.correctOptions && q.correctOptions.includes(optIndex)
                           ? "bg-green-500 text-white"
                           : "bg-gray-300 text-gray-600"
                       }`}
@@ -67,20 +67,33 @@ export default function QuestionsList({
                     </div>
                     <span
                       className={
-                        optIndex === q.correctOption
+                        q.correctOptions && q.correctOptions.includes(optIndex)
                           ? "font-medium text-green-800"
                           : "text-gray-600"
                       }
                     >
                       {option}
                     </span>
-                    {optIndex === q.correctOption && (
-                      <span className="text-green-600 text-sm ml-auto">
-                        ✓ Correct
-                      </span>
-                    )}
+                    {q.correctOptions &&
+                      q.correctOptions.includes(optIndex) && (
+                        <span className="text-green-600 text-sm ml-auto">
+                          ✓ Correct
+                        </span>
+                      )}
                   </div>
                 ))}
+              </div>
+              <div className="mt-2 text-sm text-gray-500">
+                {q.correctOptions && q.correctOptions.length > 1
+                  ? "Multiple correct answers"
+                  : "Single correct answer"}
+                {q.correctOptions && q.correctOptions.length > 0 && (
+                  <span>
+                    {" "}
+                    (Options {q.correctOptions.map((opt) => opt + 1).join(", ")}
+                    )
+                  </span>
+                )}
               </div>
             </div>
           ))}
