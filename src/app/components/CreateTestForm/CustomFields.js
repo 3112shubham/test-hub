@@ -1,21 +1,29 @@
 export default function CustomFields({ customFields, setCustomFields }) {
   const commonFields = [
     {
-      key: "College",
+      name: "College",
       label: "🏫 College",
       description: "Add college/university name",
+      type: "value",
     },
     {
-      key: "Department",
+      name: "Department",
       label: "🎓 Department",
       description: "Add department/branch",
+      type: "value",
     },
     {
-      key: "Academic Year",
+      name: "Academic Year",
       label: "📅 Academic Year",
       description: "Add academic year",
+      type: "value",
     },
-    { key: "Course", label: "📚 Course", description: "Add course name" },
+    {
+      name: "Course",
+      label: "📚 Course",
+      description: "Add course name",
+      type: "value",
+    },
   ];
 
   return (
@@ -28,7 +36,16 @@ export default function CustomFields({ customFields, setCustomFields }) {
           <button
             type="button"
             onClick={() =>
-              setCustomFields([...customFields, { key: "", value: "" }])
+              setCustomFields([
+                ...customFields,
+                {
+                  id: Date.now().toString(),
+                  name: "",
+                  type: "value",
+                  required: false,
+                  options: [],
+                },
+              ])
             }
             className="bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
           >
@@ -40,7 +57,7 @@ export default function CustomFields({ customFields, setCustomFields }) {
         <div className="space-y-3">
           {customFields.map((field, index) => (
             <div
-              key={index}
+              key={field.id}
               className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg bg-gray-50"
             >
               <div className="flex-1">
@@ -49,10 +66,10 @@ export default function CustomFields({ customFields, setCustomFields }) {
                 </label>
                 <input
                   type="text"
-                  value={field.key}
+                  value={field.name}
                   onChange={(e) => {
                     const newFields = [...customFields];
-                    newFields[index].key = e.target.value;
+                    newFields[index].name = e.target.value;
                     setCustomFields(newFields);
                   }}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -61,19 +78,28 @@ export default function CustomFields({ customFields, setCustomFields }) {
               </div>
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Value
+                  Field Type
                 </label>
-                <input
-                  type="text"
-                  value={field.value}
+                <select
+                  value={field.type}
                   onChange={(e) => {
                     const newFields = [...customFields];
-                    newFields[index].value = e.target.value;
+                    newFields[index].type = e.target.value;
+                    if (e.target.value === "value") {
+                      newFields[index].options = [];
+                    } else if (
+                      e.target.value === "dropdown" &&
+                      !newFields[index].options
+                    ) {
+                      newFields[index].options = [""];
+                    }
                     setCustomFields(newFields);
                   }}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter value..."
-                />
+                >
+                  <option value="value">Text Input</option>
+                  <option value="dropdown">Dropdown</option>
+                </select>
               </div>
               <button
                 type="button"
@@ -107,12 +133,18 @@ export default function CustomFields({ customFields, setCustomFields }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {commonFields.map((commonField) => (
             <button
-              key={commonField.key}
+              key={commonField.name}
               type="button"
               onClick={() =>
                 setCustomFields([
                   ...customFields,
-                  { key: commonField.key, value: "" },
+                  {
+                    id: Date.now().toString(),
+                    name: commonField.name,
+                    type: commonField.type,
+                    required: false,
+                    options: [],
+                  },
                 ])
               }
               className="p-3 border border-gray-200 rounded-lg text-left hover:border-blue-500 hover:bg-blue-50 transition-colors"

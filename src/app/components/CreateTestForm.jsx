@@ -16,20 +16,15 @@ export default function CreateTestForm() {
   const [testName, setTestName] = useState("");
   const [domain, setDomain] = useState("");
 
-  // Test Details
-  const [duration, setDuration] = useState("");
-  const [maxMarks, setMaxMarks] = useState("");
-  const [passingMarks, setPassingMarks] = useState("");
+  // Test Details (Simplified - only instructions and custom fields)
   const [instructions, setInstructions] = useState("");
-  const [batch, setBatch] = useState("");
   const [customFields, setCustomFields] = useState([]);
 
-  // Questions Management - UPDATED for multiple correct options
+  // Questions Management
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);
-  const [correctOptions, setCorrectOptions] = useState([]); // Changed from correctOption to correctOptions (array)
+  const [correctOptions, setCorrectOptions] = useState([]);
   const [questions, setQuestions] = useState([]);
-  // Removed optionCount since we're using dynamic options now
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeSection, setActiveSection] = useState("basic");
@@ -83,10 +78,6 @@ export default function CreateTestForm() {
 
     if (savedDetails) {
       const detailsData = JSON.parse(savedDetails);
-      setDuration(detailsData.duration || "");
-      setBatch(detailsData.batch || "");
-      setMaxMarks(detailsData.maxMarks || "");
-      setPassingMarks(detailsData.passingMarks || "");
       setInstructions(detailsData.instructions || "");
       setCustomFields(detailsData.customFields || []);
     }
@@ -109,8 +100,6 @@ export default function CreateTestForm() {
     }
   }, []);
 
-  // Remove the optionCount useEffect since we're using dynamic options
-
   const handleAddQuestion = (e) => {
     e.preventDefault();
 
@@ -123,7 +112,7 @@ export default function CreateTestForm() {
     const newQuestion = {
       question,
       options: options.filter((opt) => opt.trim() !== ""),
-      correctOptions, // Now using array of correct option indices
+      correctOptions,
       type: correctOptions.length > 1 ? "multiple" : "single",
     };
 
@@ -151,15 +140,11 @@ export default function CreateTestForm() {
   const resetForm = () => {
     setTestName("");
     setDomain("");
-    setDuration("");
-    setBatch("");
-    setMaxMarks("");
-    setPassingMarks("");
     setInstructions("");
     setCustomFields([]);
     setQuestion("");
     setOptions(["", ""]);
-    setCorrectOptions([]); // Reset to empty array
+    setCorrectOptions([]);
     setQuestions([]);
     setActiveSection("basic");
 
@@ -170,11 +155,13 @@ export default function CreateTestForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
+
     if (!isFormValid()) {
       console.log("Form is not valid, preventing submission");
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       const user = auth.currentUser;
@@ -186,12 +173,10 @@ export default function CreateTestForm() {
       const testData = {
         testName,
         domain,
-        duration,
-        batch,
-        maxMarks,
-        passingMarks,
         instructions,
-        customFields: customFields.filter((field) => field.key && field.value),
+        customFields: customFields.filter(
+          (field) => field.name && field.name.trim() !== ""
+        ),
         questions,
         totalQuestions: questions.length,
         createdAt: serverTimestamp(),
@@ -215,10 +200,6 @@ export default function CreateTestForm() {
       localStorage.setItem(
         "testDetails",
         JSON.stringify({
-          duration,
-          batch,
-          maxMarks,
-          passingMarks,
           instructions,
           customFields,
         })
@@ -226,7 +207,7 @@ export default function CreateTestForm() {
       localStorage.setItem("questions", JSON.stringify(questions));
 
       alert(
-        `Test "${testName}" created successfully! 🎉\n\nTest ID: ${docRef.id}\nTotal Questions: ${questions.length}\nDuration: ${duration} minutes\nMax Marks: ${maxMarks}`
+        `Test "${testName}" created successfully! 🎉\n\nTest ID: ${docRef.id}\nTotal Questions: ${questions.length}`
       );
 
       resetForm();
@@ -234,37 +215,31 @@ export default function CreateTestForm() {
       console.error("Error saving test to Firestore:", error);
       alert("Failed to save test. Please try again.");
     } finally {
+      console.log("Custom fields to be saved:", customFields);
+      console.log(
+        "Filtered custom fields:",
+        customFields.filter((field) => field.name && field.name.trim() !== "")
+      );
       setIsSubmitting(false);
     }
   };
 
   const isFormValid = () => {
-    const isValid = testName && questions.length > 0;
-
-    console.log("Form Validation:", {
-      testName: !!testName,
-      questionsLength: questions.length > 0,
-      isFormValid: isValid,
-    });
-
+    const isValid = testName && domain && questions.length > 0;
     return isValid;
   };
 
   const getProgressPercentage = () => {
     let progress = 0;
 
-    // Basic Info section complete (33%)
-    if (testName && domain) progress += 33;
+    // Basic Info (50%)
+    if (testName) progress += 25;
+    if (domain) progress += 25;
 
-    // Test Details section complete (33%)
-    // Since you removed the fields, we'll consider this section always complete
-    // or base it on customFields if needed
-    progress += 33;
+    // Questions (50%)
+    if (questions.length > 0) progress += 50;
 
-    // Questions section complete (34%)
-    if (questions.length > 0) progress += 34;
-
-    return progress;
+    return Math.min(progress, 100);
   };
 
   return (
@@ -293,14 +268,6 @@ export default function CreateTestForm() {
 
         {activeSection === "details" && (
           <TestDetailsSection
-            duration={duration}
-            setDuration={setDuration}
-            batch={batch}
-            setBatch={setBatch}
-            maxMarks={maxMarks}
-            setMaxMarks={setMaxMarks}
-            passingMarks={passingMarks}
-            setPassingMarks={setPassingMarks}
             instructions={instructions}
             setInstructions={setInstructions}
             customFields={customFields}
@@ -314,8 +281,8 @@ export default function CreateTestForm() {
             setQuestion={setQuestion}
             options={options}
             setOptions={setOptions}
-            correctOptions={correctOptions} // Updated prop name
-            setCorrectOptions={setCorrectOptions} // Updated prop name
+            correctOptions={correctOptions}
+            setCorrectOptions={setCorrectOptions}
             questions={questions}
             handleAddQuestion={handleAddQuestion}
             deleteQuestion={deleteQuestion}
@@ -328,7 +295,6 @@ export default function CreateTestForm() {
             testName={testName}
             domain={domain}
             domains={domains}
-            duration={duration}
             questionsLength={questions.length}
           />
         )}
@@ -340,7 +306,13 @@ export default function CreateTestForm() {
           isSubmitting={isSubmitting}
           questionsLength={questions.length}
           resetForm={resetForm}
-          hasData={testName || domain || duration || questions.length > 0}
+          hasData={
+            testName ||
+            domain ||
+            instructions ||
+            customFields.length > 0 ||
+            questions.length > 0
+          }
         />
       </form>
     </div>

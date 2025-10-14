@@ -1,5 +1,3 @@
-import CustomFields from "./CustomFields";
-
 export default function TestDetailsSection({
   instructions,
   setInstructions,
