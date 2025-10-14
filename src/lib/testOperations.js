@@ -175,11 +175,28 @@ export const addTestResponse = async (testId, responseData) => {
     }
 
     const testData = testDoc.data();
-    const newResponse = {
-      ...responseData,
-      submittedAt: serverTimestamp(),
-      responseId: Date.now().toString(),
-    };
+    // If caller sent an array-of-arrays under `responsesArray`,
+    // stringify that array so Firestore stores a string entry.
+    // Otherwise, store the full response object as before.
+    let newResponse;
+    if (responseData && responseData.responsesArray) {
+      try {
+        newResponse = JSON.stringify(responseData.responsesArray);
+      } catch (err) {
+        console.warn("Failed to stringify responsesArray, falling back to object", err);
+        newResponse = {
+          ...responseData,
+          submittedAt: serverTimestamp(),
+          responseId: Date.now().toString(),
+        };
+      }
+    } else {
+      newResponse = {
+        ...responseData,
+        submittedAt: serverTimestamp(),
+        responseId: Date.now().toString(),
+      };
+    }
 
     const updatedResponses = [...(testData.responses || []), newResponse];
 

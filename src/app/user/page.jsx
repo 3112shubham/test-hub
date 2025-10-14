@@ -47,7 +47,7 @@ export default function UserDashboard() {
 
         {/* Main Content - Takes remaining space */}
         <div className="flex-1 min-w-0">
-          <div className="p-6">{renderActiveForm()}</div>
+          <div className="px-6">{renderActiveForm()}</div>
         </div>
       </div>
     </div>

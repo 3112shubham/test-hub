@@ -1,58 +1,35 @@
 import React from "react";
 import { getTestById } from "@/lib/testOperations";
-
-// This is a Next.js Server Component used for public test viewing.
-// It fetches the test by id and renders a read-only view. Only tests
-// with status === 'published' will be shown; others return notFound.
+import TestRunner from "./TestRunner";
 
 export default async function Page({ params }) {
-  // Next.js requires awaiting `params` when using dynamic route params in server components
-  // See: https://nextjs.org/docs/messages/sync-dynamic-apis
   const { id } = await params;
   try {
     const test = await getTestById(id);
     if (!test || test.status !== "active") {
       return (
-        <div className="p-8 max-w-3xl mx-auto bg-white rounded-lg shadow">
-          <h2 className="text-2xl font-semibold mb-4">Test not found</h2>
-          <p>This test is not published or does not exist.</p>
+        <div className="p-8 max-w-3xl mx-auto bg-white rounded-xl shadow-lg">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">Test not found</h2>
+          <p className="text-gray-600">This test is not published or does not exist.</p>
         </div>
       );
     }
 
-    return (
-      <div className="p-8 max-w-3xl mx-auto bg-white rounded-lg shadow">
-        <h1 className="text-3xl font-bold mb-2">{test.testName}</h1>
-        <div className="text-sm text-gray-600 mb-4">
-          {test.totalQuestions} questions • {test.duration} minutes
-        </div>
-        {test.instructions && (
-          <div className="mb-6 bg-yellow-50 border border-yellow-200 p-4 rounded">
-            <h3 className="font-semibold mb-2">Instructions</h3>
-            <pre className="whitespace-pre-wrap">{test.instructions}</pre>
-          </div>
-        )}
+    const serialized = JSON.parse(JSON.stringify(test, (k, v) => {
+      if (v && typeof v === 'object') {
+        if (typeof v.toDate === 'function') return v.toDate().toISOString();
+        if (v.seconds && typeof v.seconds === 'number') return new Date(v.seconds * 1000).toISOString();
+      }
+      return v;
+    }));
 
-        <div className="space-y-4">
-          {test.questions?.map((q, i) => (
-            <div key={i} className="p-4 border rounded">
-              <div className="font-medium mb-2">{i + 1}. {q.question}</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {q.options.map((opt, oi) => (
-                  <div key={oi} className="p-2 bg-gray-50 rounded">{opt}</div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <TestRunner test={serialized} />;
   } catch (error) {
     console.error(error);
     return (
       <div className="p-8">
-        <h2 className="text-xl font-semibold">Error loading test</h2>
-        <p>{String(error)}</p>
+        <h2 className="text-xl font-semibold text-red-600">Error loading test</h2>
+        <p className="text-gray-600">{String(error)}</p>
       </div>
     );
   }

@@ -243,7 +243,7 @@ export default function CreateTestForm() {
   };
 
   return (
-    <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-6xl mx-auto border border-gray-100">
+    <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-8xl mx-auto border border-gray-100">
       <ProgressHeader
         questionsLength={questions.length}
         progressPercentage={getProgressPercentage()}
