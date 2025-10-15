@@ -13,7 +13,36 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { auth } from "./firebaseConfig";
+import { writeBatch } from "./firebaseConfig";
+import { arrayUnion, increment } from "firebase/firestore";
 
+export const batchWriteResponses = async (testId, responsesArray) => {
+  if (!testId || typeof testId !== "string") {
+    throw new Error("Invalid testId for batchWriteResponses");
+  }
+
+  if (!Array.isArray(responsesArray) || responsesArray.length === 0) return;
+
+  const testRef = doc(db, "tests", testId);
+
+  for (const resp of responsesArray) {
+    const newResp = {
+      responseId: Date.now().toString(),
+      submittedAt: new Date(),
+      status: "active",
+      totalQuestions: resp.answersArr?.length || 0,
+      testName: resp.meta?.testName || null,
+      answers: resp.answersArr || [],
+      customResponses: resp.customArr || [],
+    };
+
+    await updateDoc(testRef, {
+      responses: arrayUnion(newResp),
+      totalResponses: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+  }
+};
 // Create a new test
 export const createTest = async (testData) => {
   try {
@@ -170,33 +199,14 @@ export const addTestResponse = async (testId, responseData) => {
     const testRef = doc(db, "tests", testId);
     const testDoc = await getDoc(testRef);
 
-    if (!testDoc.exists()) {
-      throw new Error("Test not found");
-    }
+    if (!testDoc.exists()) throw new Error("Test not found");
 
     const testData = testDoc.data();
-    // If caller sent an array-of-arrays under `responsesArray`,
-    // stringify that array so Firestore stores a string entry.
-    // Otherwise, store the full response object as before.
-    let newResponse;
-    if (responseData && responseData.responsesArray) {
-      try {
-        newResponse = JSON.stringify(responseData.responsesArray);
-      } catch (err) {
-        console.warn("Failed to stringify responsesArray, falling back to object", err);
-        newResponse = {
-          ...responseData,
-          submittedAt: serverTimestamp(),
-          responseId: Date.now().toString(),
-        };
-      }
-    } else {
-      newResponse = {
-        ...responseData,
-        submittedAt: serverTimestamp(),
-        responseId: Date.now().toString(),
-      };
-    }
+    const newResponse = {
+      ...responseData,
+      submittedAt: serverTimestamp(),
+      responseId: Date.now().toString(),
+    };
 
     const updatedResponses = [...(testData.responses || []), newResponse];
 
