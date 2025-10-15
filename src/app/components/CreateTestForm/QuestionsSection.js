@@ -6,12 +6,19 @@ export default function QuestionsSection({
   setQuestion,
   options,
   setOptions,
-  correctOptions, // Changed from correctOption
-  setCorrectOptions, // Changed from setCorrectOption
+  correctOptions,
+  setCorrectOptions,
   questions,
   handleAddQuestion,
   deleteQuestion,
   clearAllQuestions,
+  // New props for question types
+  questionType,
+  setQuestionType,
+  textAnswer,
+  setTextAnswer,
+  trueFalseAnswer,
+  setTrueFalseAnswer,
 }) {
   return (
     <div className="space-y-6">
@@ -23,6 +30,13 @@ export default function QuestionsSection({
         correctOptions={correctOptions}
         setCorrectOptions={setCorrectOptions}
         handleAddQuestion={handleAddQuestion}
+        // New props for question types
+        questionType={questionType}
+        setQuestionType={setQuestionType}
+        textAnswer={textAnswer}
+        setTextAnswer={setTextAnswer}
+        trueFalseAnswer={trueFalseAnswer}
+        setTrueFalseAnswer={setTrueFalseAnswer}
       />
 
       <QuestionsList

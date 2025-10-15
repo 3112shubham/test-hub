@@ -20,11 +20,14 @@ export default function CreateTestForm() {
   const [instructions, setInstructions] = useState("");
   const [customFields, setCustomFields] = useState([]);
 
-  // Questions Management
+  // Questions Management with Type Support
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [correctOptions, setCorrectOptions] = useState([]);
   const [questions, setQuestions] = useState([]);
+  const [questionType, setQuestionType] = useState("mcq"); // mcq, multiple, truefalse, text
+  const [textAnswer, setTextAnswer] = useState("");
+  const [trueFalseAnswer, setTrueFalseAnswer] = useState(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeSection, setActiveSection] = useState("basic");
@@ -84,46 +87,102 @@ export default function CreateTestForm() {
 
     if (savedQuestions) {
       const parsedQuestions = JSON.parse(savedQuestions);
-      // Convert old format to new format if needed
-      const updatedQuestions = parsedQuestions.map((q) => {
-        if (q.correctOption !== undefined && q.correctOptions === undefined) {
-          // Convert from single correct option to multiple
-          return {
-            ...q,
-            correctOptions: [q.correctOption],
-            correctOption: undefined, // Remove old field
-          };
-        }
-        return q;
-      });
-      setQuestions(updatedQuestions);
+      setQuestions(parsedQuestions);
     }
   }, []);
 
-  const handleAddQuestion = (e) => {
-    e.preventDefault();
+  // Initialize options based on question type
+  useEffect(() => {
+    switch (questionType) {
+      case "truefalse":
+        setOptions(["True", "False"]);
+        setCorrectOptions([]);
+        setTrueFalseAnswer(null);
+        break;
+      case "text":
+        setOptions([]);
+        setCorrectOptions([]);
+        setTextAnswer("");
+        break;
+      case "mcq":
+      case "multiple":
+        if (
+          options.length === 0 ||
+          (options.length === 2 && options.every((opt) => opt === ""))
+        ) {
+          setOptions(["", ""]);
+        }
+        setCorrectOptions([]);
+        break;
+    }
+  }, [questionType]);
 
-    // Validate
-    if (correctOptions.length === 0) {
-      alert("Please select at least one correct option");
+  const handleAddQuestion = (questionData = null) => {
+    // If questionData is provided (from enhanced QuestionsSection), use it
+    if (questionData) {
+      const newQuestion = {
+        ...questionData,
+        id: Date.now().toString(), // Add unique ID for better management
+      };
+
+      const updatedQuestions = [...questions, newQuestion];
+      setQuestions(updatedQuestions);
+      localStorage.setItem("questions", JSON.stringify(updatedQuestions));
+
+      // Reset form based on current question type
+      resetQuestionForm();
       return;
+    }
+
+    // Legacy support - validate and create question from local state
+    if (questionType === "text") {
+      if (!textAnswer.trim()) {
+        alert("Please enter the expected text answer");
+        return;
+      }
+    } else if (questionType === "truefalse") {
+      if (correctOptions.length === 0) {
+        alert("Please select True or False");
+        return;
+      }
+    } else {
+      if (correctOptions.length === 0) {
+        alert("Please select at least one correct option");
+        return;
+      }
+      if (options.some((opt) => !opt.trim())) {
+        alert("Please fill in all options");
+        return;
+      }
     }
 
     const newQuestion = {
       question,
-      options: options.filter((opt) => opt.trim() !== ""),
+      options:
+        questionType === "text"
+          ? []
+          : options.filter((opt) => opt.trim() !== ""),
       correctOptions,
-      type: correctOptions.length > 1 ? "multiple" : "single",
+      type: questionType,
+      textAnswer: questionType === "text" ? textAnswer : undefined,
+      trueFalseAnswer:
+        questionType === "truefalse" ? trueFalseAnswer : undefined,
     };
 
     const updatedQuestions = [...questions, newQuestion];
     setQuestions(updatedQuestions);
     localStorage.setItem("questions", JSON.stringify(updatedQuestions));
 
-    // Reset form
+    resetQuestionForm();
+  };
+
+  const resetQuestionForm = () => {
     setQuestion("");
     setOptions(["", ""]);
     setCorrectOptions([]);
+    setTextAnswer("");
+    setTrueFalseAnswer(null);
+    setQuestionType("mcq");
   };
 
   const deleteQuestion = (index) => {
@@ -142,9 +201,7 @@ export default function CreateTestForm() {
     setDomain("");
     setInstructions("");
     setCustomFields([]);
-    setQuestion("");
-    setOptions(["", ""]);
-    setCorrectOptions([]);
+    resetQuestionForm();
     setQuestions([]);
     setActiveSection("basic");
 
@@ -170,6 +227,12 @@ export default function CreateTestForm() {
         return;
       }
 
+      // Calculate question type statistics
+      const questionStats = questions.reduce((stats, q) => {
+        stats[q.type] = (stats[q.type] || 0) + 1;
+        return stats;
+      }, {});
+
       const testData = {
         testName,
         domain,
@@ -179,6 +242,7 @@ export default function CreateTestForm() {
         ),
         questions,
         totalQuestions: questions.length,
+        questionTypes: questionStats,
         createdAt: serverTimestamp(),
         createdBy: user.uid,
         createdByEmail: user.email,
@@ -207,7 +271,13 @@ export default function CreateTestForm() {
       localStorage.setItem("questions", JSON.stringify(questions));
 
       alert(
-        `Test "${testName}" created successfully! 🎉\n\nTest ID: ${docRef.id}\nTotal Questions: ${questions.length}`
+        `Test "${testName}" created successfully! 🎉\n\nTest ID: ${
+          docRef.id
+        }\nTotal Questions: ${
+          questions.length
+        }\nQuestion Types: ${Object.entries(questionStats)
+          .map(([type, count]) => `${type}: ${count}`)
+          .join(", ")}`
       );
 
       resetForm();
@@ -226,20 +296,56 @@ export default function CreateTestForm() {
 
   const isFormValid = () => {
     const isValid = testName && domain && questions.length > 0;
-    return isValid;
+
+    // Additional validation for questions
+    const questionsValid = questions.every((q) => {
+      switch (q.type) {
+        case "text":
+          return q.textAnswer && q.textAnswer.trim().length > 0;
+        case "truefalse":
+          return q.correctOptions.length === 1;
+        case "mcq":
+          return q.correctOptions.length === 1 && q.options.length >= 2;
+        case "multiple":
+          return q.correctOptions.length >= 1 && q.options.length >= 2;
+        default:
+          return false;
+      }
+    });
+
+    return isValid && questionsValid;
   };
 
   const getProgressPercentage = () => {
     let progress = 0;
 
-    // Basic Info (50%)
-    if (testName) progress += 25;
-    if (domain) progress += 25;
+    // Basic Info (40%)
+    if (testName) progress += 20;
+    if (domain) progress += 20;
 
-    // Questions (50%)
-    if (questions.length > 0) progress += 50;
+    // Questions (60%)
+    if (questions.length > 0) {
+      progress += Math.min(questions.length * 5, 60); // Cap at 60%
+    }
 
     return Math.min(progress, 100);
+  };
+
+  const getQuestionTypeStats = () => {
+    const stats = {
+      mcq: 0,
+      multiple: 0,
+      truefalse: 0,
+      text: 0,
+    };
+
+    questions.forEach((q) => {
+      if (stats.hasOwnProperty(q.type)) {
+        stats[q.type]++;
+      }
+    });
+
+    return stats;
   };
 
   return (
@@ -247,6 +353,7 @@ export default function CreateTestForm() {
       <ProgressHeader
         questionsLength={questions.length}
         progressPercentage={getProgressPercentage()}
+        questionTypeStats={getQuestionTypeStats()}
       />
 
       <NavigationTabs
@@ -287,6 +394,13 @@ export default function CreateTestForm() {
             handleAddQuestion={handleAddQuestion}
             deleteQuestion={deleteQuestion}
             clearAllQuestions={clearAllQuestions}
+            // New props for question types
+            questionType={questionType}
+            setQuestionType={setQuestionType}
+            textAnswer={textAnswer}
+            setTextAnswer={setTextAnswer}
+            trueFalseAnswer={trueFalseAnswer}
+            setTrueFalseAnswer={setTrueFalseAnswer}
           />
         )}
 
@@ -295,7 +409,8 @@ export default function CreateTestForm() {
             testName={testName}
             domain={domain}
             domains={domains}
-            questionsLength={questions.length}
+            questions={questions}
+            questionTypeStats={getQuestionTypeStats()}
           />
         )}
 
