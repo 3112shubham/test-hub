@@ -161,7 +161,7 @@ const handleSubmit = async () => {
     const id = setInterval(() => {
       flushLocal();
       doSync();
-    }, 60 * 1000);
+    }, 15*60 * 1000);
 
     return () => {
       clearInterval(id);
