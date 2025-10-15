@@ -9,6 +9,13 @@ export async function POST() {
 
     // 1️⃣ Fetch unsynced data
     const unsynced = await queue.find({ synced: false }).toArray();
+    const synced = await queue.find({ synced: true }).toArray();
+
+    try{
+      await queue.deleteMany({ synced: true });
+    }catch(err){
+      console.error("Failed to clear old synced entries:", err);
+    }
     if (!unsynced.length) {
       return NextResponse.json({ message: "No unsynced submissions" });
     }
