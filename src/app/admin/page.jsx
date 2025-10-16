@@ -1,18 +1,13 @@
 "use client";
-import { signOut } from "firebase/auth";
 import { auth } from "../../lib/firebaseConfig";
 import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
   const router = useRouter();
 
-  const logout = async () => {
-    await signOut(auth);
-    router.push("/");
-  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="w-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-auto">
         {/* Header Section */}
         <div className="text-center mb-8">
@@ -48,17 +43,6 @@ export default function AdminDashboard() {
           <button className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-200 flex items-center">
             <span className="mr-3">⚙️</span>
             <span className="text-gray-700">Settings</span>
-          </button>
-        </div>
-
-        {/* Logout Button */}
-        <div className="border-t border-gray-100 pt-6">
-          <button
-            onClick={logout}
-            className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center justify-center"
-          >
-            <span className="mr-2">🚪</span>
-            Logout
           </button>
         </div>
       </div>
