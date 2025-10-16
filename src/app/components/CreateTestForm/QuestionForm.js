@@ -64,7 +64,7 @@ export default function QuestionForm({
         setCorrectOptions([]);
         break;
     }
-  }, [questionType]);
+  }, [questionType,options,setCorrectOptions, setOptions, setTextAnswer,setTrueFalseAnswer]);
 
   const addOption = () => {
     if (questionType === "text" || questionType === "truefalse") return;
@@ -322,7 +322,7 @@ export default function QuestionForm({
 
             <div className="flex justify-between items-center mt-3">
               <p className="text-sm text-gray-500">
-                Minimum 2 options required. Click "Add Option" to add more
+                Minimum 2 options required. Click &quot;Add Option&quot; to add more
                 choices.
               </p>
               <button

@@ -1,24 +1,21 @@
-import { connectToDatabase } from './dbsetup';
-import { NextResponse } from 'next/server';
-export const runtime = "nodejs";
-
+// /app/api/test-submissions/route.js
+import { NextResponse } from "next/server";
+import { getQueueCollection } from "@/lib/mongo.js";
 
 export async function POST(req) {
   try {
-    const body = await req.json();
-    const { db } = await connectToDatabase();
+    const data = await req.json();
+    const queue = await getQueueCollection();
 
-    const queue = db.collection('submissionQueue');
-    const doc = {
-      payload: body,
-      status: 'pending',
+    await queue.insertOne({
+      ...data,
       createdAt: new Date(),
-    };
+      synced: false, // ✅ ensure new entries can be found later
+    });
 
-    const result = await queue.insertOne(doc);
-    return NextResponse.json({ insertedId: result.insertedId });
-  } catch (err) {
-    console.error('Enqueue error', err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ message: "Stored in MongoDB queue" });
+  } catch (error) {
+    console.error("Error saving to MongoDB:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -44,11 +44,13 @@ export default function TestRunner({ test }) {
     else if (step > 0) setStep(step - 1);
   };
 
-  const buildResponsesArray = () => {
-    const customArr = Object.entries(customResponses).map(([k, v]) => [k, v]);
-    const answersArr = answers.map((ans, i) => [i, ans]);
-    return [customArr, answersArr];
-  };
+const buildResponsesArray = () => {
+  const customArr = Object.entries(customResponses).map(([key, value]) => ({ key, value }));
+  const answersArr = answers.map((ans, i) => ({ questionIndex: i, answer: ans }));
+
+  return [{ customArr, answersArr, meta: { testName: test.testName } }];
+};
+
 
   const resetForm = () => {
     setStep(customFields.length > 0 ? -1 : 0);
@@ -63,61 +65,53 @@ export default function TestRunner({ test }) {
     setShowAllQuestions(false);
   };
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    setMessage("");
-    
-    // Validate all questions are answered
-    const unansweredQuestions = answers.filter(answer => answer === null).length;
-    if (unansweredQuestions > 0) {
-      setMessage(`Please answer all questions. ${unansweredQuestions} question(s) remaining.`);
-      setLoading(false);
-      return;
-    }
+const handleSubmit = async () => {
+  setLoading(true);
+  setMessage("");
 
-    try {
-      const responsesArray = buildResponsesArray();
-      const payload = {
-        testId: test.id,
-        responsesArray,
-        meta: { testName: test.testName || null },
-      };
+  const unanswered = answers.filter(a => a === null).length;
+  if (unanswered > 0) {
+    setMessage(`Please answer all questions. ${unanswered} question(s) remaining.`);
+    setLoading(false);
+    return;
+  }
 
-      // Try enqueueing via API
-      const res = await fetch('/api/test-submissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+  try {
+    const responseData = buildResponsesArray();
 
-      if (!res.ok) {
-        // fallback to localStorage queue
-        const queue = JSON.parse(localStorage.getItem('submissionQueue') || '[]');
-        queue.push(payload);
-        localStorage.setItem('submissionQueue', JSON.stringify(queue));
-        setMessage('Submission queued locally (will sync shortly).');
-      } else {
-        setShowSuccessAlert(true);
-        setMessage('Test submitted successfully!');
-      }
+    const payload = {
+      testId: test.id?.toString(), // important: must be string
+      response: buildResponsesArray(),
+      meta: { testName: test.testName || null, totalQuestions: questions.length },
+      status: "active",
+      submittedAt: new Date()
+    };
 
-      // Reset form after 2 seconds
-      setTimeout(() => {
-        resetForm();
-        setShowSuccessAlert(false);
-        setMessage('');
-      }, 2000);
-    } catch (err) {
-      console.error('Submit error', err);
-      // fallback to localStorage queue
-      const queue = JSON.parse(localStorage.getItem('submissionQueue') || '[]');
-      queue.push({ testId: test.id, responsesArray: buildResponsesArray(), meta: { testName: test.testName || null } });
-      localStorage.setItem('submissionQueue', JSON.stringify(queue));
-      setMessage('Offline: submission saved locally and will sync soon.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    const res = await fetch("/api/test-submissions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error("Submission failed");
+
+    setShowSuccessAlert(true);
+    setMessage("Test submitted successfully!");
+
+    setTimeout(() => {
+      resetForm();
+      setShowSuccessAlert(false);
+      setMessage("");
+    }, 2000);
+
+  } catch (err) {
+    console.error("Submission error:", err);
+    setMessage("Failed to submit. Try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Periodic sync: attempt to flush localStorage queue and call the sync API every 60s
   useEffect(() => {
@@ -167,7 +161,7 @@ export default function TestRunner({ test }) {
     const id = setInterval(() => {
       flushLocal();
       doSync();
-    }, 60 * 1000);
+    }, 15*60 * 1000);
 
     return () => {
       clearInterval(id);

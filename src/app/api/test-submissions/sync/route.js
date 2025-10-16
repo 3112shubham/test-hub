@@ -1,43 +1,50 @@
-import { connectToDatabase } from '../dbsetup';
-import { NextResponse } from 'next/server';
-import { addTestResponse } from '@/lib/testOperations';
-export const runtime = "nodejs";
+// /app/api/test-submissions/sync/route.js
+import { NextResponse } from "next/server";
+import { getQueueCollection } from "@/lib/mongo.js";
+import { batchWriteResponses } from "@/lib/testOperations.js";
 
-export async function POST(req) {
+export async function POST() {
   try {
-    const { db } = await connectToDatabase();
-    const queue = db.collection('submissionQueue');
+    const queue = await getQueueCollection();
 
-    // Fetch pending items (limit to 100 per run)
-    const pending = await queue.find({ status: 'pending' }).limit(100).toArray();
+    // 1️⃣ Fetch unsynced data
+    const unsynced = await queue.find({ synced: false }).toArray();
+    const synced = await queue.find({ synced: true }).toArray();
 
-    const results = [];
-    for (const item of pending) {
-      try {
-        const payload = item.payload;
-        // Expect payload to contain { testId, responsesArray, meta }
-        if (!payload || !payload.testId) {
-          await queue.updateOne({ _id: item._id }, { $set: { status: 'failed', error: 'missing testId' } });
-          results.push({ id: item._id, status: 'failed', reason: 'missing testId' });
-          continue;
-        }
-
-        // Call addTestResponse to persist to Firestore
-        await addTestResponse(payload.testId, payload);
-
-        // Mark processed
-        await queue.deleteOne({ _id: item._id });
-        results.push({ id: item._id, status: 'processed' });
-      } catch (err) {
-        console.error('Sync item failed', item._id, err);
-        await queue.updateOne({ _id: item._id }, { $set: { status: 'failed', error: String(err) } });
-        results.push({ id: item._id, status: 'failed', reason: String(err) });
-      }
+    try{
+      await queue.deleteMany({ synced: true });
+    }catch(err){
+      console.error("Failed to clear old synced entries:", err);
+    }
+    if (!unsynced.length) {
+      return NextResponse.json({ message: "No unsynced submissions" });
     }
 
-    return NextResponse.json({ processed: results.length, details: results });
-  } catch (err) {
-    console.error('Sync error', err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    // 2️⃣ Group by testId (so each test writes once)
+    const grouped = {};
+    for (const doc of unsynced) {
+      const testId = doc.testId.toString();
+      if (!grouped[testId]) grouped[testId] = [];
+      grouped[testId].push(doc.response[0]); // assuming single response array
+    }
+
+    // 3️⃣ Write to Firestore for each test
+    for (const [testId, responses] of Object.entries(grouped)) {
+      await batchWriteResponses(testId, responses);
+    }
+
+    // 4️⃣ Mark them as synced
+    const ids = unsynced.map(d => d._id);
+    await queue.updateMany(
+      { _id: { $in: ids } },
+      { $set: { synced: true, syncedAt: new Date() } }
+    );
+
+    return NextResponse.json({
+      message: `Synced ${unsynced.length} submissions to Firestore.`,
+    });
+  } catch (error) {
+    console.error("Sync error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -71,6 +71,27 @@ export default function ViewTests() {
       alert("Failed to publish test. Please try again.");
     }
   };
+  const handleSyncQueue = async () => {
+    try {
+      setLoading(true); // optional: show spinner
+      const res = await fetch("/api/test-submissions/sync", {
+        method: "POST",
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        alert(data.message || "Queue synced successfully!");
+      } else {
+        alert("Failed to sync queue: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error syncing queue: " + err.message);
+    } finally {
+      setLoading(false);
+      loadTests(); // optional: refresh the tests list after sync
+    }
+  };
 
   const handleUnpublish = async () => {
     if (!selectedTest) return;
@@ -320,7 +341,15 @@ export default function ViewTests() {
                       <span>🗑️</span>
                       <span>Delete</span>
                     </button>
+                    <button
+                      onClick={handleSyncQueue}
+                      className="bg-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center space-x-2"
+                    >
+                      <span>⚡</span>
+                      <span>Sync Queue</span>
+                    </button>
                   </div>
+
                 </div>
 
                 {/* Test Details Grid */}
