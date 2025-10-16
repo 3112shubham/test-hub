@@ -64,7 +64,7 @@ export default function QuestionForm({
         setCorrectOptions([]);
         break;
     }
-  }, [questionType,options,setCorrectOptions, setOptions, setTextAnswer,setTrueFalseAnswer]);
+  },[questionType]);
 
   const addOption = () => {
     if (questionType === "text" || questionType === "truefalse") return;
