@@ -3,17 +3,13 @@ export default function BasicInfoSection({
   setTestName,
   domain,
   setDomain,
+  description,
+  setDescription,
   domains,
 }) {
-  const getDomainDescription = () => {
-    const selected = domains.find((d) => d.value === domain);
-    return selected
-      ? selected.description
-      : "Select a domain to see description";
-  };
-
   return (
     <div className="space-y-6">
+      {/* Test Name */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Test Name *
@@ -28,6 +24,7 @@ export default function BasicInfoSection({
         />
       </div>
 
+      {/* Test Domain */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -48,19 +45,18 @@ export default function BasicInfoSection({
           </select>
         </div>
 
+        {/* Domain Description (optional) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Domain Description
+            Domain Description (Optional)
           </label>
-          <div className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 min-h-[52px] flex items-center">
-            <p
-              className={`text-sm ${
-                domain ? "text-gray-700" : "text-gray-400"
-              }`}
-            >
-              {getDomainDescription()}
-            </p>
-          </div>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
+            rows={1}
+            placeholder="Enter a description for the domain (optional)..."
+          />
         </div>
       </div>
     </div>

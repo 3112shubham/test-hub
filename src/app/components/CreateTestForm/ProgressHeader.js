@@ -1,6 +1,7 @@
 export default function ProgressHeader({
   questionsLength,
   progressPercentage,
+  testName
 }) {
   return (
     <div className="mb-8">
@@ -29,11 +30,18 @@ export default function ProgressHeader({
       </div>
       <div className="flex justify-between text-sm text-gray-600">
         <span>{progressPercentage}% Complete</span>
-        <span>
-          {questionsLength > 0
-            ? "Ready to create!"
-            : "Add questions to complete"}
-        </span>
+        <div className="flex flex-col items-end justify-center text-rose-500">
+          <span>
+            {questionsLength > 3
+              ? ""
+              : "* Add atleast 3 questions to complete"}
+          </span>
+          <span>
+            {testName
+              ? ""
+              : "* Test Name is missing"}
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -11,17 +11,12 @@ if (!uri) {
 }
 
 // Global variable to cache the MongoClient in development
-if (process.env.NODE_ENV === "development") {
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    global._mongoClientPromise = client.connect();
-  }
-  clientPromise = global._mongoClientPromise;
-} else {
-  // In production, create a new client for each instance
+
+if (!global._mongoClientPromise) {
   client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  global._mongoClientPromise = client.connect();
 }
+clientPromise = global._mongoClientPromise;
 
 export default clientPromise;
 
