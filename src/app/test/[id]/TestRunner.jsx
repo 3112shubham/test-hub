@@ -1,7 +1,5 @@
 "use client";
 import React, { useState, useEffect } from "react";
-// We will enqueue submissions through API to avoid Firestore race conditions
-
 
 export default function TestRunner({ test }) {
   const customFields = test.customFields || [];
@@ -17,7 +15,14 @@ export default function TestRunner({ test }) {
     return init;
   });
 
-  const [answers, setAnswers] = useState(() => Array(questions.length).fill(null));
+  const [answers, setAnswers] = useState(() => 
+    questions.map(q => {
+      if (q.type === "multiple") return [];
+      if (q.type === "text") return "";
+      return null;
+    })
+  );
+  
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
@@ -26,10 +31,35 @@ export default function TestRunner({ test }) {
     setCustomResponses((prev) => ({ ...prev, [id]: value }));
   };
 
-  const selectOption = (qIndex, optIndex) => {
+  // Handle different answer types
+  const handleAnswer = (qIndex, value, questionType) => {
     setAnswers((prev) => {
       const next = [...prev];
-      next[qIndex] = optIndex;
+      
+      switch (questionType) {
+        case "multiple":
+          // Toggle option in multiple selection
+          const currentAnswers = next[qIndex] || [];
+          if (currentAnswers.includes(value)) {
+            next[qIndex] = currentAnswers.filter(item => item !== value);
+          } else {
+            next[qIndex] = [...currentAnswers, value];
+          }
+          break;
+          
+        case "text":
+          next[qIndex] = value;
+          break;
+          
+        case "truefalse":
+          next[qIndex] = value;
+          break;
+          
+        default: // mcq
+          next[qIndex] = value;
+          break;
+      }
+      
       return next;
     });
   };
@@ -44,17 +74,24 @@ export default function TestRunner({ test }) {
     else if (step > 0) setStep(step - 1);
   };
 
-const buildResponsesArray = () => {
-  const customArr = Object.entries(customResponses).map(([key, value]) => ({ key, value }));
-  const answersArr = answers.map((ans, i) => ({ questionIndex: i, answer: ans }));
+  const buildResponsesArray = () => {
+    const customArr = Object.entries(customResponses).map(([key, value]) => ({ key, value }));
+    const answersArr = answers.map((ans, i) => ({ 
+      questionIndex: i, 
+      answer: ans,
+      questionType: questions[i].type 
+    }));
 
-  return [{ customArr, answersArr, meta: { testName: test.testName } }];
-};
-
+    return [{ customArr, answersArr, meta: { testName: test.testName } }];
+  };
 
   const resetForm = () => {
     setStep(customFields.length > 0 ? -1 : 0);
-    setAnswers(Array(questions.length).fill(null));
+    setAnswers(questions.map(q => {
+      if (q.type === "multiple") return [];
+      if (q.type === "text") return "";
+      return null;
+    }));
     setCustomResponses(() => {
       const init = {};
       customFields.forEach((f) => {
@@ -65,122 +102,213 @@ const buildResponsesArray = () => {
     setShowAllQuestions(false);
   };
 
-const handleSubmit = async () => {
-  setLoading(true);
-  setMessage("");
+  const handleSubmit = async () => {
+    setLoading(true);
+    setMessage("");
 
-  const unanswered = answers.filter(a => a === null).length;
-  if (unanswered > 0) {
-    setMessage(`Please answer all questions. ${unanswered} question(s) remaining.`);
-    setLoading(false);
-    return;
-  }
+    try {
+      const responseData = buildResponsesArray();
 
-  try {
-    const responseData = buildResponsesArray();
+      const payload = {
+        testId: test.id?.toString(),
+        response: buildResponsesArray(),
+        meta: { testName: test.testName || null, totalQuestions: questions.length },
+        status: "active",
+        submittedAt: new Date()
+      };
 
-    const payload = {
-      testId: test.id?.toString(), // important: must be string
-      response: buildResponsesArray(),
-      meta: { testName: test.testName || null, totalQuestions: questions.length },
-      status: "active",
-      submittedAt: new Date()
-    };
+      const res = await fetch("/api/test-submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-    const res = await fetch("/api/test-submissions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+      if (!res.ok) throw new Error("Submission failed");
 
-    if (!res.ok) throw new Error("Submission failed");
+      setShowSuccessAlert(true);
+      setMessage("Test submitted successfully!");
 
-    setShowSuccessAlert(true);
-    setMessage("Test submitted successfully!");
+      setTimeout(() => {
+        resetForm();
+        setShowSuccessAlert(false);
+        setMessage("");
+      }, 2000);
 
-    setTimeout(() => {
-      resetForm();
-      setShowSuccessAlert(false);
-      setMessage("");
-    }, 2000);
+    } catch (err) {
+      console.error("Submission error:", err);
+      setMessage("Failed to submit. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  } catch (err) {
-    console.error("Submission error:", err);
-    setMessage("Failed to submit. Try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+  // Render question based on type
+  const renderQuestion = (question, qIndex, isSingleView = true) => {
+    const currentAnswer = answers[qIndex];
+    const questionNumber = isSingleView ? step + 1 : qIndex + 1;
 
+    return (
+      <div key={qIndex} className={`p-6 border border-gray-200 rounded-xl bg-white ${!isSingleView ? 'hover:border-blue-300 transition-colors' : ''}`}>
+        <div className="flex items-start space-x-3 mb-4">
+          <span className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
+            {questionNumber}
+          </span>
+          <h4 className="text-lg font-medium text-gray-800">{question.question}</h4>
+        </div>
 
-  // Periodic sync: attempt to flush localStorage queue and call the sync API every 60s
-  useEffect(() => {
-    let mounted = true;
+        {/* Multiple Choice (Single Select) */}
+        {question.type === "mcq" && (
+          <div className="grid grid-cols-1 gap-3 ml-11">
+            {question.options.map((opt, oi) => {
+              const selected = currentAnswer === oi;
+              return (
+                <button 
+                  key={oi}
+                  onClick={() => handleAnswer(qIndex, oi, "mcq")}
+                  className={`text-left p-4 rounded-xl border-2 transition-all ${
+                    selected 
+                      ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' 
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-25'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 ${
+                      selected ? 'border-blue-500 bg-blue-500' : 'border-gray-400'
+                    }`}>
+                      {selected && (
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                    <span className="font-medium">{opt}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-    const flushLocal = async () => {
-      try {
-        const queue = JSON.parse(localStorage.getItem('submissionQueue') || '[]');
-        if (!queue || queue.length === 0) return;
+        {/* Multiple Correct Answers */}
+        {question.type === "multiple" && (
+          <div className="grid grid-cols-1 gap-3 ml-11">
+            {question.options.map((opt, oi) => {
+              const selected = currentAnswer?.includes(oi);
+              return (
+                <button 
+                  key={oi}
+                  onClick={() => handleAnswer(qIndex, oi, "multiple")}
+                  className={`text-left p-4 rounded-xl border-2 transition-all ${
+                    selected 
+                      ? 'border-green-500 bg-green-50 text-green-700 shadow-sm' 
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-25'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <div className={`w-6 h-6 rounded border-2 flex items-center justify-center mr-3 ${
+                      selected ? 'border-green-500 bg-green-500' : 'border-gray-400'
+                    }`}>
+                      {selected && (
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="font-medium">{opt}</span>
+                  </div>
+                </button>
+              );
+            })}
+            <div className="text-sm text-gray-500 mt-2">
+              Select all that apply
+            </div>
+          </div>
+        )}
 
-        // Try to POST each item to enqueue API
-        for (const item of queue) {
-          try {
-            const r = await fetch('/api/test-submissions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(item),
-            });
-            if (r.ok) {
-              // continue to next
-            }
-          } catch (err) {
-            console.warn('Failed to flush local item', err);
-            // stop early
-            return;
-          }
-        }
+        {/* True/False */}
+        {question.type === "truefalse" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-11">
+            {["True", "False"].map((option, oi) => {
+              const selected = currentAnswer === oi;
+              return (
+                <button 
+                  key={oi}
+                  onClick={() => handleAnswer(qIndex, oi, "truefalse")}
+                  className={`p-6 rounded-xl border-2 text-center font-medium transition-all ${
+                    selected 
+                      ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-sm' 
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-purple-300 hover:bg-purple-25'
+                  }`}
+                >
+                  <div className="flex items-center justify-center">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 ${
+                      selected ? 'border-purple-500 bg-purple-500' : 'border-gray-400'
+                    }`}>
+                      {selected && (
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                    <span className="text-lg font-semibold">{option}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-        // If all enqueued successfully, clear local queue
-        localStorage.removeItem('submissionQueue');
-      } catch (err) {
-        console.error('Flush local error', err);
-      }
-    };
+        {/* Text Answer */}
+        {question.type === "text" && (
+          <div className="ml-11">
+            <textarea
+              value={currentAnswer || ""}
+              onChange={(e) => handleAnswer(qIndex, e.target.value, "text")}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-vertical"
+              rows={4}
+              placeholder="Type your answer here..."
+            />
+            <div className="text-sm text-gray-500 mt-2">
+              Please provide a detailed answer
+            </div>
+          </div>
+        )}
 
-    const doSync = async () => {
-      try {
-        await fetch('/api/test-submissions/sync', { method: 'POST' });
-      } catch (err) {
-        console.warn('Sync API failed', err);
-      }
-    };
+        {/* Question Type Badge */}
+        <div className="ml-11 mt-4">
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+            question.type === "mcq" ? "bg-blue-100 text-blue-800" :
+            question.type === "multiple" ? "bg-green-100 text-green-800" :
+            question.type === "truefalse" ? "bg-purple-100 text-purple-800" :
+            "bg-orange-100 text-orange-800"
+          }`}>
+            {question.type === "mcq" && "Single Choice"}
+            {question.type === "multiple" && "Multiple Choice"}
+            {question.type === "truefalse" && "True/False"}
+            {question.type === "text" && "Text Answer"}
+          </span>
+        </div>
+      </div>
+    );
+  };
 
-    // Run immediately then every 60s
-    flushLocal();
-    doSync();
-    const id = setInterval(() => {
-      flushLocal();
-      doSync();
-    }, 15*60 * 1000);
-
-    return () => {
-      clearInterval(id);
-      mounted = false;
-    };
-  }, []);
+  // Get answer status for navigation
+  const getAnswerStatus = (qIndex) => {
+    const answer = answers[qIndex];
+    const question = questions[qIndex];
+    
+    if (answer === null || answer === undefined) return "unanswered";
+    if (question.type === "multiple" && answer.length === 0) return "unanswered";
+    if (question.type === "text" && answer.trim() === "") return "unanswered";
+    return "answered";
+  };
 
   const progress = ((step + 1) / questions.length) * 100;
 
   if (!test) return <div className="p-4">Test not found</div>;
 
   return (
-    // Fullscreen wrapper
-    <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-      {/* Centered content with max width and full height */}
-      <div className="w-full h-full max-w-5xl mx-auto px-4 py-6">
+    <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="w-full h-full max-w-6xl mx-auto flex flex-col">
         {/* Success Alert */}
         {showSuccessAlert && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl shadow-sm">
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-xl shadow-sm">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
@@ -195,7 +323,7 @@ const handleSubmit = async () => {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden h-full flex flex-col">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden flex-1 flex flex-col">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4">
             <h2 className="text-2xl font-bold text-white">{test.testName}</h2>
@@ -226,7 +354,7 @@ const handleSubmit = async () => {
           <div className="p-6 overflow-auto flex-1">
             {step === -1 ? (
               // Custom Fields Section
-              <div className="space-y-6">
+              <div className="space-y-6 max-w-2xl mx-auto">
                 <div className="text-center mb-6">
                   <h3 className="text-xl font-semibold text-gray-800">Welcome!</h3>
                   <p className="text-gray-600 mt-2">Please provide your details before starting the test</p>
@@ -285,44 +413,7 @@ const handleSubmit = async () => {
                 </div>
                 
                 <div className="space-y-8">
-                  {questions.map((question, qIndex) => (
-                    <div key={qIndex} className="p-6 border border-gray-200 rounded-xl hover:border-blue-300 transition-colors">
-                      <div className="flex items-start space-x-3 mb-4">
-                        <span className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
-                          {qIndex + 1}
-                        </span>
-                        <h4 className="text-lg font-medium text-gray-800">{question.question}</h4>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 gap-3 ml-11">
-                        {question.options.map((opt, oi) => {
-                          const selected = answers[qIndex] === oi;
-                          return (
-                            <button 
-                              key={oi}
-                              onClick={() => selectOption(qIndex, oi)}
-                              className={`text-left p-4 rounded-xl border-2 transition-all ${
-                                selected 
-                                  ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' 
-                                  : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-25'
-                              }`}
-                            >
-                              <div className="flex items-center">
-                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 ${
-                                  selected ? 'border-blue-500 bg-blue-500' : 'border-gray-400'
-                                }`}>
-                                  {selected && (
-                                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                                  )}
-                                </div>
-                                <span className="font-medium">{opt}</span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                  {questions.map((question, qIndex) => renderQuestion(question, qIndex, false))}
                 </div>
 
                 <div className="flex justify-between items-center pt-6 border-t border-gray-200">
@@ -353,7 +444,7 @@ const handleSubmit = async () => {
               </div>
             ) : (
               // Single Question View
-              <div className="space-y-6">
+              <div className="space-y-6 max-w-4xl mx-auto">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-semibold text-gray-800">
                     Question {step + 1} of {questions.length}
@@ -366,37 +457,7 @@ const handleSubmit = async () => {
                   </button>
                 </div>
 
-                <div className="p-6 border border-gray-200 rounded-xl bg-white">
-                  <h4 className="text-lg font-medium text-gray-800 mb-6">{questions[step].question}</h4>
-                  
-                  <div className="space-y-3">
-                    {questions[step].options.map((opt, oi) => {
-                      const selected = answers[step] === oi;
-                      return (
-                        <button 
-                          key={oi}
-                          onClick={() => selectOption(step, oi)}
-                          className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                            selected 
-                              ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' 
-                              : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-25'
-                          }`}
-                        >
-                          <div className="flex items-center">
-                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 ${
-                              selected ? 'border-blue-500 bg-blue-500' : 'border-gray-400'
-                            }`}>
-                              {selected && (
-                                <div className="w-2 h-2 bg-white rounded-full"></div>
-                              )}
-                            </div>
-                            <span className="font-medium">{opt}</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                {renderQuestion(questions[step], step, true)}
 
                 <div className="flex justify-between items-center pt-6">
                   <button 
@@ -453,21 +514,24 @@ const handleSubmit = async () => {
               <div className="mt-8 pt-6 border-t border-gray-200">
                 <h4 className="text-sm font-medium text-gray-700 mb-3">Questions Navigation</h4>
                 <div className="flex flex-wrap gap-2">
-                  {questions.map((_, qIndex) => (
-                    <button
-                      key={qIndex}
-                      onClick={() => setStep(qIndex)}
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${
-                        qIndex === step
-                          ? 'bg-blue-600 text-white'
-                          : answers[qIndex] !== null
-                          ? 'bg-green-100 text-green-700 border border-green-300'
-                          : 'bg-gray-100 text-gray-600 border border-gray-300'
-                      } hover:shadow-md`}
-                    >
-                      {qIndex + 1}
-                    </button>
-                  ))}
+                  {questions.map((_, qIndex) => {
+                    const status = getAnswerStatus(qIndex);
+                    return (
+                      <button
+                        key={qIndex}
+                        onClick={() => setStep(qIndex)}
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${
+                          qIndex === step
+                            ? 'bg-blue-600 text-white'
+                            : status === 'answered'
+                            ? 'bg-green-100 text-green-700 border border-green-300'
+                            : 'bg-gray-100 text-gray-600 border border-gray-300'
+                        } hover:shadow-md`}
+                      >
+                        {qIndex + 1}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
