@@ -1,15 +1,33 @@
+import { useEffect } from "react";
+
 export default function TestDetailsSection({
   instructions,
   setInstructions,
   customFields,
   setCustomFields,
 }) {
+  // Ensure "Email" field always exists
+  useEffect(() => {
+    const hasEmailField = customFields.some(
+      (field) => field.name.toLowerCase() === "email"
+    );
+
+    if (!hasEmailField) {
+      const emailField = {
+        id: "default-email",
+        name: "Email",
+        type: "value",
+        required: true,
+        options: [],
+      };
+      setCustomFields([emailField, ...customFields]);
+    }
+  }, [customFields, setCustomFields]);
+
   return (
     <div className="space-y-6">
-      
-
       {/* Response Structure Definition Section */}
-      <div className=" pt-6">
+      <div className="pt-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">
           Response Structure Definition
         </h3>
@@ -25,6 +43,7 @@ export default function TestDetailsSection({
               className="border border-gray-200 rounded-lg p-4 bg-gray-50"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {/* Field Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Field Name *
@@ -37,12 +56,16 @@ export default function TestDetailsSection({
                       updatedFields[index].name = e.target.value;
                       setCustomFields(updatedFields);
                     }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      field.id === "default-email" ? "bg-gray-100" : ""
+                    }`}
                     placeholder="e.g., Roll Number, Department"
                     required
+                    disabled={field.id === "default-email"} // email name locked
                   />
                 </div>
 
+                {/* Field Type */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Field Type *
@@ -52,7 +75,6 @@ export default function TestDetailsSection({
                     onChange={(e) => {
                       const updatedFields = [...customFields];
                       updatedFields[index].type = e.target.value;
-                      // Clear options when switching from dropdown to value type
                       if (e.target.value === "value") {
                         updatedFields[index].options = [];
                       } else if (
@@ -64,6 +86,7 @@ export default function TestDetailsSection({
                       setCustomFields(updatedFields);
                     }}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={field.id === "default-email"} // can't change type for email
                   >
                     <option value="value">Text Input</option>
                     <option value="dropdown">Dropdown</option>
@@ -71,6 +94,7 @@ export default function TestDetailsSection({
                 </div>
               </div>
 
+              {/* Dropdown Options */}
               {field.type === "dropdown" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -120,6 +144,7 @@ export default function TestDetailsSection({
                 </div>
               )}
 
+              {/* Required + Remove */}
               <div className="flex justify-between items-center mt-4">
                 <div className="flex items-center">
                   <input
@@ -141,22 +166,26 @@ export default function TestDetailsSection({
                   </label>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    const updatedFields = customFields.filter(
-                      (_, i) => i !== index
-                    );
-                    setCustomFields(updatedFields);
-                  }}
-                  className="px-3 py-1 text-red-600 hover:text-red-800 font-medium"
-                >
-                  Remove Field
-                </button>
+                {/* Show Remove for email only if there's more than one field */}
+                {(field.id !== "default-email" || customFields.length > 1) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updatedFields = customFields.filter(
+                        (_, i) => i !== index
+                      );
+                      setCustomFields(updatedFields);
+                    }}
+                    className="px-3 py-1 text-red-600 hover:text-red-800 font-medium"
+                  >
+                    Remove Field
+                  </button>
+                )}
               </div>
             </div>
           ))}
 
+          {/* Add Custom Field */}
           <button
             type="button"
             onClick={() => {
@@ -191,6 +220,7 @@ export default function TestDetailsSection({
         </div>
       </div>
 
+      {/* Test Instructions */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Test Instructions

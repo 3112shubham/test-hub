@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../lib/firebaseConfig";
-import { auth } from "../../lib/firebaseConfig";
+import { db, auth } from "../../lib/firebaseConfig";
 import BasicInfoSection from "./CreateTestForm/BasicInfoSection";
 import TestDetailsSection from "./CreateTestForm/TestDetailsSection";
 import QuestionsSection from "./CreateTestForm/QuestionsSection";
@@ -12,20 +11,21 @@ import TestSummary from "./CreateTestForm/TestSummary";
 import NavigationButtons from "./CreateTestForm/NavigationButtons";
 
 export default function CreateTestForm() {
-  // Test Basic Information
+  // Basic Info
   const [testName, setTestName] = useState("");
   const [domain, setDomain] = useState("");
+  const [description, setDescription] = useState(""); // new optional domain description
 
-  // Test Details (Simplified - only instructions and custom fields)
+  // Test Details
   const [instructions, setInstructions] = useState("");
   const [customFields, setCustomFields] = useState([]);
 
-  // Questions Management with Type Support
+  // Questions
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [correctOptions, setCorrectOptions] = useState([]);
   const [questions, setQuestions] = useState([]);
-  const [questionType, setQuestionType] = useState("mcq"); // mcq, multiple, truefalse, text
+  const [questionType, setQuestionType] = useState("mcq");
   const [textAnswer, setTextAnswer] = useState("");
   const [trueFalseAnswer, setTrueFalseAnswer] = useState(null);
 
@@ -33,40 +33,15 @@ export default function CreateTestForm() {
   const [activeSection, setActiveSection] = useState("basic");
 
   const domains = [
-    {
-      value: "aptitude",
-      label: "Aptitude",
-      description:
-        "Logical reasoning, quantitative ability, and problem-solving",
-    },
-    {
-      value: "technical",
-      label: "Technical",
-      description: "Programming, engineering, and technical skills",
-    },
-    {
-      value: "soft-skills",
-      label: "Soft Skills",
-      description: "Communication, teamwork, and interpersonal skills",
-    },
-    {
-      value: "domain-knowledge",
-      label: "Domain Knowledge",
-      description: "Industry-specific knowledge and expertise",
-    },
-    {
-      value: "behavioral",
-      label: "Behavioral",
-      description: "Personality, work style, and cultural fit",
-    },
-    {
-      value: "language",
-      label: "Language",
-      description: "Verbal ability and language proficiency",
-    },
+    { value: "aptitude", label: "Aptitude" },
+    { value: "technical", label: "Technical" },
+    { value: "soft-skills", label: "Soft Skills" },
+    { value: "domain-knowledge", label: "Domain Knowledge" },
+    { value: "behavioral", label: "Behavioral" },
+    { value: "language", label: "Language" },
   ];
 
-  // Load saved data on component mount
+  // Load saved data
   useEffect(() => {
     const savedTest = localStorage.getItem("createTest");
     const savedDetails = localStorage.getItem("testDetails");
@@ -76,7 +51,7 @@ export default function CreateTestForm() {
       const testData = JSON.parse(savedTest);
       setTestName(testData.testName || "");
       setDomain(testData.domain || "");
-      setCustomFields(testData.customFields || []);
+      setDescription(testData.description || "");
     }
 
     if (savedDetails) {
@@ -86,8 +61,7 @@ export default function CreateTestForm() {
     }
 
     if (savedQuestions) {
-      const parsedQuestions = JSON.parse(savedQuestions);
-      setQuestions(parsedQuestions);
+      setQuestions(JSON.parse(savedQuestions));
     }
   }, []);
 
@@ -108,7 +82,7 @@ export default function CreateTestForm() {
       case "multiple":
         if (
           options.length === 0 ||
-          (options.length === 2 && options.every((opt) => opt === ""))
+          (options.length === 2 && options.every((o) => o === ""))
         ) {
           setOptions(["", ""]);
         }
@@ -118,61 +92,24 @@ export default function CreateTestForm() {
   }, [questionType]);
 
   const handleAddQuestion = (questionData = null) => {
-    // If questionData is provided (from enhanced QuestionsSection), use it
-    if (questionData) {
-      const newQuestion = {
-        ...questionData,
-        id: Date.now().toString(), // Add unique ID for better management
-      };
-
-      const updatedQuestions = [...questions, newQuestion];
-      setQuestions(updatedQuestions);
-      localStorage.setItem("questions", JSON.stringify(updatedQuestions));
-
-      // Reset form based on current question type
-      resetQuestionForm();
-      return;
-    }
-
-    // Legacy support - validate and create question from local state
-    if (questionType === "text") {
-      if (!textAnswer.trim()) {
-        alert("Please enter the expected text answer");
-        return;
-      }
-    } else if (questionType === "truefalse") {
-      if (correctOptions.length === 0) {
-        alert("Please select True or False");
-        return;
-      }
-    } else {
-      if (correctOptions.length === 0) {
-        alert("Please select at least one correct option");
-        return;
-      }
-      if (options.some((opt) => !opt.trim())) {
-        alert("Please fill in all options");
-        return;
-      }
-    }
-
-    const newQuestion = {
-      question,
-      options:
-        questionType === "text"
-          ? []
-          : options.filter((opt) => opt.trim() !== ""),
-      correctOptions,
-      type: questionType,
-      textAnswer: questionType === "text" ? textAnswer : undefined,
-      trueFalseAnswer:
-        questionType === "truefalse" ? trueFalseAnswer : undefined,
-    };
+    const newQuestion = questionData
+      ? { ...questionData, id: Date.now().toString() }
+      : {
+          question,
+          options:
+            questionType === "text"
+              ? []
+              : options.filter((opt) => opt.trim() !== ""),
+          correctOptions,
+          type: questionType,
+          textAnswer: questionType === "text" ? textAnswer : undefined,
+          trueFalseAnswer:
+            questionType === "truefalse" ? trueFalseAnswer : undefined,
+        };
 
     const updatedQuestions = [...questions, newQuestion];
     setQuestions(updatedQuestions);
     localStorage.setItem("questions", JSON.stringify(updatedQuestions));
-
     resetQuestionForm();
   };
 
@@ -191,14 +128,10 @@ export default function CreateTestForm() {
     localStorage.setItem("questions", JSON.stringify(updatedQuestions));
   };
 
-  const clearAllQuestions = () => {
-    setQuestions([]);
-    localStorage.removeItem("questions");
-  };
-
   const resetForm = () => {
     setTestName("");
     setDomain("");
+    setDescription("");
     setInstructions("");
     setCustomFields([]);
     resetQuestionForm();
@@ -212,33 +145,25 @@ export default function CreateTestForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!isFormValid()) {
-      console.log("Form is not valid, preventing submission");
-      return;
-    }
+    if (!isFormValid()) return;
 
     setIsSubmitting(true);
-
     try {
       const user = auth.currentUser;
-      if (!user) {
-        alert("You must be logged in to create a test!");
-        return;
-      }
+      if (!user) throw new Error("You must be logged in to create a test!");
 
-      // Calculate question type statistics
-      const questionStats = questions.reduce((stats, q) => {
-        stats[q.type] = (stats[q.type] || 0) + 1;
-        return stats;
+      const questionStats = questions.reduce((acc, q) => {
+        acc[q.type] = (acc[q.type] || 0) + 1;
+        return acc;
       }, {});
 
       const testData = {
         testName,
         domain,
+        description,
         instructions,
         customFields: customFields.filter(
-          (field) => field.name && field.name.trim() !== ""
+          (f) => f.name && f.name.trim() !== ""
         ),
         questions,
         totalQuestions: questions.length,
@@ -246,7 +171,7 @@ export default function CreateTestForm() {
         createdAt: serverTimestamp(),
         createdBy: user.uid,
         createdByEmail: user.email,
-        status: "active",
+        status: "inactive",
         responses: [],
         totalResponses: 0,
       };
@@ -263,41 +188,22 @@ export default function CreateTestForm() {
       );
       localStorage.setItem(
         "testDetails",
-        JSON.stringify({
-          instructions,
-          customFields,
-        })
+        JSON.stringify({ instructions, customFields })
       );
       localStorage.setItem("questions", JSON.stringify(questions));
 
-      alert(
-        `Test "${testName}" created successfully! 🎉\n\nTest ID: ${
-          docRef.id
-        }\nTotal Questions: ${
-          questions.length
-        }\nQuestion Types: ${Object.entries(questionStats)
-          .map(([type, count]) => `${type}: ${count}`)
-          .join(", ")}`
-      );
-
+      alert(`Test "${testName}" created successfully! 🎉`);
       resetForm();
     } catch (error) {
-      console.error("Error saving test to Firestore:", error);
+      console.error(error);
       alert("Failed to save test. Please try again.");
     } finally {
-      console.log("Custom fields to be saved:", customFields);
-      console.log(
-        "Filtered custom fields:",
-        customFields.filter((field) => field.name && field.name.trim() !== "")
-      );
       setIsSubmitting(false);
     }
   };
 
   const isFormValid = () => {
-    const isValid = testName && domain && questions.length > 0;
-
-    // Additional validation for questions
+    const basicValid = testName && domain && questions.length > 0;
     const questionsValid = questions.every((q) => {
       switch (q.type) {
         case "text":
@@ -312,39 +218,19 @@ export default function CreateTestForm() {
           return false;
       }
     });
-
-    return isValid && questionsValid;
+    return basicValid && questionsValid;
   };
 
   const getProgressPercentage = () => {
     let progress = 0;
-
-    // Basic Info (40%)
-    if (testName) progress += 20;
-    if (domain) progress += 20;
-
-    // Questions (60%)
-    if (questions.length > 0) {
-      progress += Math.min(questions.length * 5, 60); // Cap at 60%
-    }
-
+    if (testName) progress += 40;
+    if (questions.length > 0) progress += Math.min(questions.length * 20, 60);
     return Math.min(progress, 100);
   };
 
   const getQuestionTypeStats = () => {
-    const stats = {
-      mcq: 0,
-      multiple: 0,
-      truefalse: 0,
-      text: 0,
-    };
-
-    questions.forEach((q) => {
-      if (stats.hasOwnProperty(q.type)) {
-        stats[q.type]++;
-      }
-    });
-
+    const stats = { mcq: 0, multiple: 0, truefalse: 0, text: 0 };
+    questions.forEach((q) => stats[q.type] !== undefined && stats[q.type]++);
     return stats;
   };
 
@@ -354,6 +240,7 @@ export default function CreateTestForm() {
         questionsLength={questions.length}
         progressPercentage={getProgressPercentage()}
         questionTypeStats={getQuestionTypeStats()}
+        testName={testName}
       />
 
       <NavigationTabs
@@ -369,6 +256,8 @@ export default function CreateTestForm() {
             setTestName={setTestName}
             domain={domain}
             setDomain={setDomain}
+            description={description} // new prop
+            setDescription={setDescription} // new prop
             domains={domains}
           />
         )}
@@ -393,8 +282,10 @@ export default function CreateTestForm() {
             questions={questions}
             handleAddQuestion={handleAddQuestion}
             deleteQuestion={deleteQuestion}
-            clearAllQuestions={clearAllQuestions}
-            // New props for question types
+            clearAllQuestions={() => {
+              setQuestions([]);
+              localStorage.removeItem("questions");
+            }}
             questionType={questionType}
             setQuestionType={setQuestionType}
             textAnswer={textAnswer}
@@ -408,6 +299,7 @@ export default function CreateTestForm() {
           <TestSummary
             testName={testName}
             domain={domain}
+            description={description} // optional
             domains={domains}
             questions={questions}
             questionTypeStats={getQuestionTypeStats()}

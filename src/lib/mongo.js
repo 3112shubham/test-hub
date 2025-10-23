@@ -17,10 +17,13 @@ let client;
 let clientPromise;
 
 // Use global caching in BOTH development and production
+// Global variable to cache the MongoClient in development
+
 if (!global._mongoClientPromise) {
   client = new MongoClient(uri, options);
   global._mongoClientPromise = client.connect();
 }
+clientPromise = global._mongoClientPromise;
 
 clientPromise = global._mongoClientPromise;
 
