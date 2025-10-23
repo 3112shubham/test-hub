@@ -107,7 +107,7 @@ export default function CustomFields({ customFields, setCustomFields }) {
                   const newFields = customFields.filter((_, i) => i !== index);
                   setCustomFields(newFields);
                 }}
-                className="mt-6 text-red-600 hover:text-red-700 p-2"
+                className="mt-6 text-rose-600 hover:text-rose-700 p-2"
               >
                 🗑️
               </button>

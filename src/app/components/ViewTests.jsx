@@ -5,18 +5,57 @@ import {
   deleteTest,
   publishTest,
   unpublishTest,
+  updateTest,
 } from "../../lib/testOperations";
 import { exportTestToExcel } from "@/utils/ExportToExcel";
+import {
+  Download,
+  Upload,
+  Link2,
+  Ban,
+  Trash2,
+  RefreshCcw,
+  Edit,
+  X,
+} from "lucide-react";
+import QuestionEditor from "./QuestionEditor";
+import toast from "react-hot-toast";
 
 export default function ViewTests() {
   const [tests, setTests] = useState([]);
   const [selectedTest, setSelectedTest] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updatingTest, setUpdatingTest] = useState(false);
+  const [updatedTestData, setUpdatedTestData] = useState({
+    testName: "",
+    domain: "",
+    description: "",
+    instructions: "",
+    questions: [], // Existing questions (preserved)
+    newQuestions: [], // New questions to be added
+    removedQuestions: [], // Questions to be removed
+  });
 
   // Load tests from Firestore
   useEffect(() => {
     loadTests();
   }, []);
+
+  // Initialize update modal data when test is selected
+  useEffect(() => {
+    if (selectedTest && showUpdateModal) {
+      setUpdatedTestData({
+        testName: selectedTest.testName || "",
+        domain: selectedTest.domain || "",
+        description: selectedTest.description || "",
+        instructions: selectedTest.instructions || "",
+        questions: selectedTest.questions || [], // Preserve existing questions
+        newQuestions: [], // Start with empty new questions
+        removedQuestions: [], // Start with empty removed questions
+      });
+    }
+  }, [selectedTest, showUpdateModal]);
 
   const loadTests = async () => {
     try {
@@ -25,6 +64,148 @@ export default function ViewTests() {
     } catch (error) {
       console.error("Error loading tests:", error);
       setTests([]);
+      toast.error("Failed to load tests");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshTestsWithSync = async () => {
+    setLoading(true);
+    try {
+      await handleSyncQueue(); // Sync first
+      await loadTests(); // Then refresh
+    } catch (error) {
+      console.error("Error in refresh with sync:", error);
+      toast.error("Error refreshing tests");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add these functions to your component
+
+  const addNewQuestion = () => {
+    setUpdatedTestData((prev) => ({
+      ...prev,
+      newQuestions: [
+        ...(prev.newQuestions || []),
+        {
+          question: "",
+          type: "mcq",
+          options: ["", ""],
+          correctOptions: [],
+          textAnswer: "",
+          trueFalseAnswer: null,
+        },
+      ],
+    }));
+  };
+
+  // Remove existing question (moves to removedQuestions)
+  const removeExistingQuestion = (index) => {
+    setUpdatedTestData((prev) => ({
+      ...prev,
+      questions: prev.questions.filter((_, i) => i !== index),
+      removedQuestions: [
+        ...(prev.removedQuestions || []),
+        prev.questions[index],
+      ],
+    }));
+  };
+
+  // Remove new question (completely removes it since it wasn't saved yet)
+  const removeNewQuestion = (index) => {
+    setUpdatedTestData((prev) => ({
+      ...prev,
+      newQuestions: prev.newQuestions.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Update handlers for new questions
+  const updateNewQuestion = (index, field, value) => {
+    setUpdatedTestData((prev) => ({
+      ...prev,
+      newQuestions: prev.newQuestions.map((q, i) =>
+        i === index ? { ...q, [field]: value } : q
+      ),
+    }));
+  };
+
+  const addNewQuestionOption = (questionIndex) => {
+    setUpdatedTestData((prev) => ({
+      ...prev,
+      newQuestions: prev.newQuestions.map((q, i) =>
+        i === questionIndex ? { ...q, options: [...q.options, ""] } : q
+      ),
+    }));
+  };
+
+  const removeNewQuestionOption = (questionIndex, optionIndex) => {
+    setUpdatedTestData((prev) => ({
+      ...prev,
+      newQuestions: prev.newQuestions.map((q, i) =>
+        i === questionIndex
+          ? {
+              ...q,
+              options: q.options.filter((_, j) => j !== optionIndex),
+              correctOptions: q.correctOptions
+                .filter((opt) => opt !== optionIndex)
+                .map((opt) => (opt > optionIndex ? opt - 1 : opt)),
+            }
+          : q
+      ),
+    }));
+  };
+
+  const updateNewQuestionOption = (questionIndex, optionIndex, value) => {
+    setUpdatedTestData((prev) => ({
+      ...prev,
+      newQuestions: prev.newQuestions.map((q, i) =>
+        i === questionIndex
+          ? {
+              ...q,
+              options: q.options.map((opt, j) =>
+                j === optionIndex ? value : opt
+              ),
+            }
+          : q
+      ),
+    }));
+  };
+
+  const toggleNewQuestionCorrectOption = (questionIndex, optionIndex) => {
+    setUpdatedTestData((prev) => ({
+      ...prev,
+      newQuestions: prev.newQuestions.map((q, i) => {
+        if (i !== questionIndex) return q;
+
+        const currentQuestion = prev.newQuestions[questionIndex];
+        const isMultiple = currentQuestion.type === "multiple";
+        const currentCorrectOptions = currentQuestion.correctOptions || [];
+
+        if (isMultiple) {
+          const newCorrectOptions = currentCorrectOptions.includes(optionIndex)
+            ? currentCorrectOptions.filter((opt) => opt !== optionIndex)
+            : [...currentCorrectOptions, optionIndex];
+          return { ...q, correctOptions: newCorrectOptions };
+        } else {
+          return { ...q, correctOptions: [optionIndex] };
+        }
+      }),
+    }));
+  };
+
+  const exportTestWithSync = async () => {
+    if (!selectedTest) return;
+
+    setLoading(true);
+    try {
+      await handleSyncQueue(); // Sync first
+      exportTest(); // Then export
+    } catch (error) {
+      console.error("Error in export with sync:", error);
+      toast.error("Error exporting test");
     } finally {
       setLoading(false);
     }
@@ -42,18 +223,18 @@ export default function ViewTests() {
         if (selectedTest?.id === testId) {
           setSelectedTest(null);
         }
-        alert("Test deleted successfully!");
+        toast.success("Test deleted successfully!");
       } catch (error) {
         console.error("Error deleting test:", error);
-        alert("Failed to delete test. Please try again.");
+        toast.error("Failed to delete test. Please try again.");
       }
     }
   };
 
   const exportTest = () => {
     if (!selectedTest) return;
-
     exportTestToExcel(selectedTest);
+    toast.success("Test exported successfully!");
   };
 
   const handlePublish = async () => {
@@ -62,34 +243,54 @@ export default function ViewTests() {
       await publishTest(selectedTest.id);
       // Update local state
       setTests((prev) =>
-        prev.map((t) => (t.id === selectedTest.id ? { ...t, status: "active" } : t))
+        prev.map((t) =>
+          t.id === selectedTest.id ? { ...t, status: "active" } : t
+        )
       );
       setSelectedTest((s) => ({ ...s, status: "active" }));
-      alert("Test published. You can now copy the link to share it.");
+      toast.success("Test published. You can now copy the link to share it.");
     } catch (error) {
       console.error(error);
-      alert("Failed to publish test. Please try again.");
+      toast.error("Failed to publish test. Please try again.");
     }
   };
+
   const handleSyncQueue = async () => {
+    const loadingToast = toast.loading("Syncing queue..."); // Add this
     try {
-      setLoading(true); // optional: show spinner
+      setLoading(true);
       const res = await fetch("/api/test-submissions/sync", {
         method: "POST",
       });
       const data = await res.json();
 
       if (res.ok) {
-        alert(data.message || "Queue synced successfully!");
+        toast.success(data.message || "Queue synced successfully!", {
+          id: loadingToast,
+        });
+
+        // Update selectedTest with fresh data
+        if (selectedTest) {
+          const freshTests = await getUserTests(); // Or use the updated tests state
+          const updatedTest = freshTests.find((t) => t.id === selectedTest.id);
+          if (updatedTest) {
+            setSelectedTest(updatedTest);
+          }
+        }
       } else {
-        alert("Failed to sync queue: " + (data.error || "Unknown error"));
+        toast.error(
+          "Failed to sync queue: " + (data.error || "Unknown error"),
+          {
+            id: loadingToast,
+          }
+        );
       }
     } catch (err) {
       console.error(err);
-      alert("Error syncing queue: " + err.message);
+      toast.error("Error syncing queue: " + err.message);
     } finally {
       setLoading(false);
-      loadTests(); // optional: refresh the tests list after sync
+      loadTests();
     }
   };
 
@@ -104,13 +305,71 @@ export default function ViewTests() {
     try {
       await unpublishTest(selectedTest.id);
       setTests((prev) =>
-        prev.map((t) => (t.id === selectedTest.id ? { ...t, status: "inactive" } : t))
+        prev.map((t) =>
+          t.id === selectedTest.id ? { ...t, status: "inactive" } : t
+        )
       );
       setSelectedTest((s) => ({ ...s, status: "inactive" }));
-      alert("Test unpublished successfully.");
+      toast.success("Test unpublished successfully.");
     } catch (error) {
       console.error(error);
-      alert("Failed to unpublish test. Please try again.");
+      toast.error("Failed to unpublish test. Please try again.");
+    }
+  };
+
+  const handleUpdateTest = (testId) => {
+    if (!selectedTest) return;
+    setShowUpdateModal(true);
+  };
+
+  const handleUpdateSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedTest) return;
+
+    setUpdatingTest(true);
+    try {
+      // Combine existing (non-removed) questions with new questions
+      const finalQuestions = [
+        ...updatedTestData.questions, // Remaining existing questions
+        ...updatedTestData.newQuestions, // Newly added questions
+      ];
+
+      const updateData = {
+        testName: updatedTestData.testName,
+        domain: updatedTestData.domain,
+        description: updatedTestData.description,
+        instructions: updatedTestData.instructions,
+        questions: finalQuestions,
+        totalQuestions: finalQuestions.length,
+      };
+
+      await updateTest(selectedTest.id, updateData);
+
+      // Update local state
+      setTests((prev) =>
+        prev.map((t) =>
+          t.id === selectedTest.id
+            ? {
+                ...t,
+                ...updateData,
+                totalQuestions: finalQuestions.length,
+              }
+            : t
+        )
+      );
+      setSelectedTest((s) => ({
+        ...s,
+        ...updateData,
+        totalQuestions: finalQuestions.length,
+      }));
+
+      toast.success("Test updated successfully!");
+      setShowUpdateModal(false);
+    } catch (error) {
+      console.error("Error updating test:", error);
+      toast.error("Failed to update test. Please try again.");
+    } finally {
+      setUpdatingTest(false);
     }
   };
 
@@ -119,7 +378,7 @@ export default function ViewTests() {
     const url = `${window.location.origin}/test/${selectedTest.id}`;
     try {
       await navigator.clipboard.writeText(url);
-      alert("Public link copied to clipboard:\n+" + url);
+      toast.success(`Public link copied to clipboard! ${url}`);
     } catch (err) {
       // Fallback for older browsers
       const textArea = document.createElement("textarea");
@@ -128,9 +387,9 @@ export default function ViewTests() {
       textArea.select();
       try {
         document.execCommand("copy");
-        alert("Public link copied to clipboard:\n" + url);
+        toast.success("Public link copied to clipboard!");
       } catch (e) {
-        prompt("Copy this link", url);
+        toast.error("Failed to copy link. Please copy it manually.");
       }
       document.body.removeChild(textArea);
     }
@@ -139,13 +398,10 @@ export default function ViewTests() {
   const formatDate = (timestamp) => {
     if (!timestamp) return "Unknown date";
     if (timestamp.toDate) {
-      // Firestore timestamp
       return timestamp.toDate().toLocaleDateString();
     } else if (typeof timestamp === "string") {
-      // ISO string from localStorage
       return new Date(timestamp).toLocaleDateString();
     } else if (timestamp.seconds) {
-      // Firestore timestamp in object format
       return new Date(timestamp.seconds * 1000).toLocaleDateString();
     }
     return "Invalid date";
@@ -156,9 +412,18 @@ export default function ViewTests() {
     loadTests();
   };
 
+  const domains = [
+    { value: "aptitude", label: "Aptitude" },
+    { value: "technical", label: "Technical" },
+    { value: "soft-skills", label: "Soft Skills" },
+    { value: "domain-knowledge", label: "Domain Knowledge" },
+    { value: "behavioral", label: "Behavioral" },
+    { value: "language", label: "Language" },
+  ];
+
   if (loading) {
     return (
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-6xl mx-auto">
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-8xl mx-auto">
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
@@ -167,383 +432,746 @@ export default function ViewTests() {
   }
 
   return (
-    <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Created Tests
-          </h2>
-          <p className="text-gray-600">View and manage your assessment tests</p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="text-right">
-            <div className="text-2xl font-bold text-blue-600">
-              {tests.length}
-            </div>
-            <div className="text-sm text-gray-500">Total Tests</div>
+    <>
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-8xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              Created Tests
+            </h2>
+            <p className="text-gray-600">
+              View and manage your assessment tests
+            </p>
           </div>
-          <button
-            onClick={refreshTests}
-            className="bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
-          >
-            <span>🔄</span>
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
-
-      {tests.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-          <div className="text-6xl mb-4">📝</div>
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">
-            No Tests Created Yet
-          </h3>
-          <p className="text-gray-500 mb-6">
-            Create your first test to see it listed here
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            Create Your First Test
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Tests List */}
-          <div className="lg:col-span-1">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">
-                Your Tests
-              </h3>
-              <span className="text-sm text-gray-500">
-                {tests.length} test{tests.length !== 1 ? "s" : ""}
-              </span>
+          <div className="flex items-center space-x-4">
+            <div className="text-center">
+              <div className="text-sm text-gray-500">Total Tests</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {tests.length}
+              </div>
             </div>
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {tests.map((test) => (
-                <div
-                  key={test.id}
-                  className={`p-4 border rounded-xl cursor-pointer transition-all ${
-                    selectedTest?.id === test.id
-                      ? "border-blue-500 bg-blue-50 shadow-md"
-                      : "border-gray-200 bg-white hover:border-gray-300"
-                  }`}
-                  onClick={() => setSelectedTest(test)}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold text-gray-800 line-clamp-2">
-                      {test.testName || "Unnamed Test"}
-                    </h4>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        test.status === "active"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {test.status || "Active"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>{test.totalQuestions || 0} Qs</span>
-                    <span>{test.duration || 0} mins</span>
-                    <span>{test.maxMarks || 0} marks</span>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Created: {formatDate(test.createdAt)}
-                  </div>
-                  {test.totalResponses > 0 && (
-                    <div className="text-xs text-green-600 mt-1">
-                      {test.totalResponses} response
-                      {test.totalResponses !== 1 ? "s" : ""}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <button
+              onClick={refreshTestsWithSync}
+              className="bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <RefreshCcw size={16} />
+              <span>Refresh</span>
+            </button>
           </div>
+        </div>
 
-          {/* Test Details */}
-          <div className="lg:col-span-2">
-            {selectedTest ? (
-              <div className="border border-gray-200 rounded-xl p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                      {selectedTest.testName}
-                    </h3>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600 flex-wrap gap-2">
-                      <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-                        {selectedTest.domain
-                          ? selectedTest.domain.charAt(0).toUpperCase() +
-                            selectedTest.domain.slice(1)
-                          : "No Domain"}
-                      </span>
-                      <span>•</span>
-                      <span>{selectedTest.totalQuestions} questions</span>
-                      <span>•</span>
-                      <span>{selectedTest.duration} minutes</span>
-                      <span>•</span>
-                      <span>{selectedTest.maxMarks} total marks</span>
-                      {selectedTest.totalResponses > 0 && (
-                        <>
-                          <span>•</span>
-                          <span className="text-green-600 font-medium">
-                            {selectedTest.totalResponses} responses
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex space-x-2 ml-4">
-                    <button
-                      onClick={exportTest}
-                      className="bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
-                    >
-                      <span>📥</span>
-                      <span>Export</span>
-                    </button>
-
-                    {/* Publish / Unpublish / Copy Link */}
-                    {selectedTest.status === "active" ? (
-                      <>
-                        
-                        <button
-                          onClick={handleUnpublish}
-                          className="bg-yellow-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-yellow-700 transition-colors flex items-center space-x-2"
-                        >
-                          <span>🚫</span>
-                          <span>Unpublish</span>
-                        </button>
-                        <button
-                          onClick={copyLink}
-                          className="bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                        >
-                          <span>🔗</span>
-                          <span>Copy Link</span>
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={handlePublish}
-                        className="bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                      >
-                        <span>📣</span>
-                        <span>Publish</span>
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => handleDeleteTest(selectedTest.id)}
-                      className="bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center space-x-2"
-                    >
-                      <span>🗑️</span>
-                      <span>Delete</span>
-                    </button>
-                    <button
-                      onClick={handleSyncQueue}
-                      className="bg-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center space-x-2"
-                    >
-                      <span>⚡</span>
-                      <span>Sync Queue</span>
-                    </button>
-                  </div>
-
-                </div>
-
-                {/* Test Details Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-3">
-                      Test Configuration
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Domain:</span>
-                        <span className="font-medium">
-                          {selectedTest.domain || "Not set"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Duration:</span>
-                        <span className="font-medium">
-                          {selectedTest.duration} minutes
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Batch:</span>
-                        <span className="font-medium">
-                          {selectedTest.batch || "Not set"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Max Marks:</span>
-                        <span className="font-medium">
-                          {selectedTest.maxMarks}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Passing Marks:</span>
-                        <span className="font-medium">
-                          {selectedTest.passingMarks || "Not set"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-3">
-                      Statistics
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Total Questions:</span>
-                        <span className="font-medium">
-                          {selectedTest.totalQuestions}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Created On:</span>
-                        <span className="font-medium">
-                          {formatDate(selectedTest.createdAt)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Status:</span>
-                        <span className="font-medium text-green-600">
-                          {selectedTest.status || "Active"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Responses:</span>
-                        <span className="font-medium">
-                          {selectedTest.totalResponses || 0}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Custom Fields */}
-                {selectedTest.customFields &&
-                  selectedTest.customFields.length > 0 && (
-                    <div className="mb-6">
-                      <h4 className="font-semibold text-gray-800 mb-3">
-                        Additional Information
+        {tests.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+            <div className="text-6xl mb-4">📝</div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+              No Tests Created Yet
+            </h3>
+            <p className="text-gray-500 mb-6">
+              Create your first test to see it listed here
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-blue-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              Create Your First Test
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Tests List */}
+            <div className="lg:col-span-1">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  Your Tests
+                </h3>
+                <span className="text-sm text-gray-500">
+                  {tests.length} test{tests.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {tests.map((test) => (
+                  <div
+                    key={test.id}
+                    className={`p-4 border rounded-xl cursor-pointer transition-all ${
+                      selectedTest?.id === test.id
+                        ? "border-blue-500 bg-blue-50 shadow-md"
+                        : "border-gray-200 bg-white hover:border-gray-300"
+                    }`}
+                    onClick={() => setSelectedTest(test)}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-semibold text-gray-800 line-clamp-2">
+                        {test.testName || "Unnamed Test"}
                       </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {selectedTest.customFields.map(
-                          (field, index) =>
-                            field.key &&
-                            field.value && (
-                              <div
-                                key={index}
-                                className="bg-gray-50 p-3 rounded-lg"
-                              >
-                                <div className="text-sm text-gray-600 font-medium">
-                                  {field.key}
-                                </div>
-                                <div className="text-gray-800">
-                                  {field.value}
-                                </div>
-                              </div>
-                            )
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          test.status === "active"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {test.status || "Active"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-600 mb-2">
+                      <span>{test.totalQuestions || 0} Qs</span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Created: {formatDate(test.createdAt)}
+                    </div>
+                    {test.totalResponses > 0 && (
+                      <div className="text-xs text-green-600 mt-1">
+                        {test.totalResponses} response
+                        {test.totalResponses !== 1 ? "s" : ""}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Test Details */}
+            <div className="lg:col-span-2">
+              {selectedTest ? (
+                <div className="border border-gray-200 rounded-xl p-4">
+                  <div className="flex flex-col py-2 gap-y-5">
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                        {selectedTest.testName}
+                      </h3>
+                      <div className="flex items-center space-x-4 text-sm text-gray-600 flex-wrap gap-2">
+                        <span className="bg-sky-100 text-blue-800 px-3 py-1 rounded-full">
+                          {selectedTest.domain
+                            ? selectedTest.domain.charAt(0).toUpperCase() +
+                              selectedTest.domain.slice(1)
+                            : "No Domain"}
+                        </span>
+                        <span className="text-emerald-500 font-medium px-2 py-1 space-x-2 text-sm text-nowrap">
+                          {selectedTest.totalQuestions || 0} questions
+                        </span>
+
+                        {selectedTest.totalResponses > 0 && (
+                          <>
+                            <span className="text-emerald-500 font-medium px-2 py-1 space-x-2 text-sm text-nowrap">
+                              {selectedTest.totalResponses} responses
+                            </span>
+                          </>
                         )}
                       </div>
                     </div>
-                  )}
+                    <div className="flex flex-col items-center gap-3 text-sm">
+                      {/* Reminder */}
+                      <span className="text-xs text-amber-600 font-medium bg-amber-50 px-3 py-1 rounded-md border border-amber-200 shadow-sm">
+                        ⚠️ Always <strong>Sync Queue</strong> before exporting
+                        to avoid loss of responses.
+                      </span>
 
-                {/* Instructions */}
-                {selectedTest.instructions && (
-                  <div className="mb-6">
-                    <h4 className="font-semibold text-gray-800 mb-3">
-                      Test Instructions
-                    </h4>
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                        {selectedTest.instructions}
-                      </p>
+                      {/* Buttons */}
+                      <div className="flex justify-center flex-wrap gap-2 text-sm">
+                        {/* Export */}
+                        <button
+                          onClick={exportTestWithSync}
+                          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-green-700 hover:shadow-md transition-all"
+                        >
+                          <Download size={16} />
+                          <span>Export</span>
+                        </button>
+
+                        {/* Publish / Unpublish / Copy Link */}
+                        {selectedTest.status === "active" ? (
+                          <>
+                            <button
+                              onClick={handleUnpublish}
+                              className="flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-yellow-600 hover:shadow-md transition-all"
+                            >
+                              <Ban size={16} />
+                              <span>Unpublish</span>
+                            </button>
+
+                            <button
+                              onClick={copyLink}
+                              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-blue-700 hover:shadow-md transition-all"
+                            >
+                              <Link2 size={16} />
+                              <span>Copy Link</span>
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={handlePublish}
+                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-blue-700 hover:shadow-md transition-all"
+                          >
+                            <Upload size={16} />
+                            <span>Publish</span>
+                          </button>
+                        )}
+
+                        {/* Update Test Button - Only shows when test is inactive */}
+                        {selectedTest.status !== "active" && (
+                          <button
+                            onClick={() => handleUpdateTest(selectedTest.id)}
+                            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-indigo-700 hover:shadow-md transition-all"
+                          >
+                            <Edit size={16} />
+                            <span>Update Test</span>
+                          </button>
+                        )}
+
+                        {/* Delete */}
+                        <button
+                          onClick={() => handleDeleteTest(selectedTest.id)}
+                          className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-rose-700 hover:shadow-md transition-all"
+                        >
+                          <Trash2 size={16} />
+                          <span>Delete</span>
+                        </button>
+
+                        {/* Sync Queue */}
+                        <button
+                          onClick={handleSyncQueue}
+                          className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-purple-700 hover:shadow-md transition-all"
+                        >
+                          <RefreshCcw size={16} />
+                          <span>Sync Queue</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                )}
 
-                {/* Questions Preview */}
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-semibold text-gray-800">
-                      Questions ({selectedTest.questions?.length || 0})
-                    </h4>
-                    <span className="text-sm text-gray-500">
-                      Scroll to view all questions
-                    </span>
-                  </div>
-                  <div className="space-y-4 max-h-96 overflow-y-auto">
-                    {selectedTest.questions?.map((q, index) => (
-                      <div
-                        key={index}
-                        className="border border-gray-200 rounded-lg p-4"
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <h5 className="font-medium text-gray-800 flex-1">
-                            {index + 1}. {q.question}
-                          </h5>
+                  {/* Test Details Grid - Side by Side Layout */}
+                  <div className="flex flex-col lg:flex-row gap-6 mb-6">
+                    {/* Statistics Card */}
+                    <div className="bg-gray-50 p-4 rounded-lg flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-3">
+                        Statistics
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">
+                            Total Questions:
+                          </span>
+                          <span className="font-medium">
+                            {selectedTest.totalQuestions}
+                          </span>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {q.options.map((option, optIndex) => (
-                            <div
-                              key={optIndex}
-                              className={`flex items-center space-x-2 p-2 rounded ${
-                                optIndex === q.correctOption
-                                  ? "bg-green-50 border border-green-200"
-                                  : "bg-gray-50"
-                              }`}
-                            >
-                              <div
-                                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                                  optIndex === q.correctOption
-                                    ? "bg-green-500 text-white"
-                                    : "bg-gray-300 text-gray-600"
-                                }`}
-                              >
-                                {optIndex + 1}
-                              </div>
-                              <span
-                                className={
-                                  optIndex === q.correctOption
-                                    ? "font-medium text-green-800"
-                                    : "text-gray-600"
-                                }
-                              >
-                                {option}
-                              </span>
-                              {optIndex === q.correctOption && (
-                                <span className="text-green-600 text-sm ml-auto">
-                                  ✓
-                                </span>
-                              )}
-                            </div>
-                          ))}
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Created On:</span>
+                          <span className="font-medium">
+                            {formatDate(selectedTest.createdAt)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Status:</span>
+                          <span className="font-medium text-green-600">
+                            {selectedTest.status || "Active"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Responses:</span>
+                          <span className="font-medium">
+                            {selectedTest.totalResponses || 0}
+                          </span>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Custom Fields - Student Data Collection */}
+                    {selectedTest.customFields &&
+                      selectedTest.customFields.length > 0 && (
+                        <div className="bg-gray-50 p-4 rounded-lg flex-1">
+                          <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                            <svg
+                              className="w-5 h-5 text-green-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                              />
+                            </svg>
+                            Student Registration Fields
+                          </h4>
+                          <div className="space-y-2 max-h-40 pr-2">
+                            {selectedTest.customFields.map(
+                              (field, index) =>
+                                field.name &&
+                                field.name.trim() !== "" && (
+                                  <div
+                                    key={index}
+                                    className="flex items-center justify-between p-2 bg-white rounded border border-gray-300"
+                                  >
+                                    <div>
+                                      <div className="font-medium text-gray-800 text-sm capitalize">
+                                        {field.name}
+                                      </div>
+                                      <div className="text-xs text-gray-500 flex items-center gap-2">
+                                        <span className="capitalize">
+                                          {field.type || "text"}
+                                        </span>
+                                        <span>•</span>
+                                        <span
+                                          className={
+                                            field.required
+                                              ? "text-rose-600 font-medium"
+                                              : "text-gray-500"
+                                          }
+                                        >
+                                          {field.required
+                                            ? "Required"
+                                            : "Optional"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {field.required && (
+                                      <span className="text-rose-500 text-sm">
+                                        *
+                                      </span>
+                                    )}
+                                  </div>
+                                )
+                            )}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+
+                  {/* Instructions */}
+                  {selectedTest.instructions && (
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-gray-800 mb-3">
+                        Test Instructions
+                      </h4>
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                          {selectedTest.instructions}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Questions Preview */}
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="font-semibold text-gray-800">
+                        Questions ({selectedTest.questions?.length || 0})
+                      </h4>
+                      <span className="text-sm text-gray-500">
+                        Scroll to view all questions
+                      </span>
+                    </div>
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {selectedTest.questions?.map((q, index) => (
+                        <div
+                          key={index}
+                          className="border border-gray-200 rounded-lg p-4"
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <h5 className="font-medium text-gray-800 flex-1">
+                              {index + 1}. {q.question}
+                            </h5>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {q.options.map((option, optIndex) => (
+                              <div
+                                key={optIndex}
+                                className={`flex items-center space-x-2 p-2 rounded ${
+                                  optIndex === q.correctOption
+                                    ? "bg-green-50 border border-green-200"
+                                    : "bg-gray-50"
+                                }`}
+                              >
+                                <div
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                                    optIndex === q.correctOption
+                                      ? "bg-green-500 text-white"
+                                      : "bg-gray-300 text-gray-600"
+                                  }`}
+                                >
+                                  {optIndex + 1}
+                                </div>
+                                <span
+                                  className={
+                                    optIndex === q.correctOption
+                                      ? "font-medium text-green-800"
+                                      : "text-gray-600"
+                                  }
+                                >
+                                  {option}
+                                </span>
+                                {optIndex === q.correctOption && (
+                                  <span className="text-green-600 text-sm ml-auto">
+                                    ✓
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="border border-gray-200 rounded-xl p-12 text-center bg-gray-50">
+                  <div className="text-4xl mb-4">👆</div>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                    Select a Test
+                  </h3>
+                  <p className="text-gray-500">
+                    Choose a test from the list to view its details
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Update Test Modal */}
+      {showUpdateModal && (
+        <div className="fixed inset-0 bg-black/30 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900">Update Test</h3>
+              <button
+                onClick={() => setShowUpdateModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateSubmit} className="p-6 space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Test Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={updatedTestData.testName}
+                    onChange={(e) =>
+                      setUpdatedTestData((prev) => ({
+                        ...prev,
+                        testName: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Domain *
+                  </label>
+                  <select
+                    required
+                    value={updatedTestData.domain}
+                    onChange={(e) =>
+                      setUpdatedTestData((prev) => ({
+                        ...prev,
+                        domain: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select Domain</option>
+                    {domains.map((domain) => (
+                      <option key={domain.value} value={domain.value}>
+                        {domain.label}
+                      </option>
                     ))}
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={updatedTestData.description}
+                    onChange={(e) =>
+                      setUpdatedTestData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter a description for the test..."
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Instructions
+                  </label>
+                  <textarea
+                    value={updatedTestData.instructions}
+                    onChange={(e) =>
+                      setUpdatedTestData((prev) => ({
+                        ...prev,
+                        instructions: e.target.value,
+                      }))
+                    }
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter test instructions for students..."
+                  />
+                </div>
+              </div>
+
+              {/* Questions Section */}
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-800">
+                      Questions (
+                      {(updatedTestData.questions?.length || 0) +
+                        (updatedTestData.newQuestions?.length || 0)}
+                      )
+                    </h4>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Existing questions are preserved. Add new questions or
+                      remove unwanted ones.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addNewQuestion}
+                    className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <span>+</span>
+                    Add New Question
+                  </button>
+                </div>
+
+                {/* New Questions Section */}
+                {updatedTestData.newQuestions &&
+                  updatedTestData.newQuestions.length > 0 && (
+                    <div className="mb-6">
+                      <h5 className="font-medium text-green-700 mb-3 flex items-center gap-2">
+                        <span>New Questions</span>
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                          {updatedTestData.newQuestions.length} new
+                        </span>
+                      </h5>
+                      <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
+                        {updatedTestData.newQuestions.map((question, index) => (
+                          <QuestionEditor
+                            key={`new-${index}`}
+                            question={question}
+                            index={index}
+                            isNew={true}
+                            onUpdate={(field, value) =>
+                              updateNewQuestion(index, field, value)
+                            }
+                            onRemove={() => removeNewQuestion(index)}
+                            onAddOption={() => addNewQuestionOption(index)}
+                            onRemoveOption={(optIndex) =>
+                              removeNewQuestionOption(index, optIndex)
+                            }
+                            onUpdateOption={(optIndex, value) =>
+                              updateNewQuestionOption(index, optIndex, value)
+                            }
+                            onToggleCorrectOption={(optIndex) =>
+                              toggleNewQuestionCorrectOption(index, optIndex)
+                            }
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                {/* Existing Questions Section */}
+                <div>
+                  <h5 className="font-medium text-gray-700 mb-3">
+                    Existing Questions ({updatedTestData.questions?.length || 0}
+                    )
+                  </h5>
+                  {updatedTestData.questions &&
+                  updatedTestData.questions.length > 0 ? (
+                    <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                      {updatedTestData.questions.map((question, index) => (
+                        <div
+                          key={index}
+                          className="border border-gray-200 rounded-lg p-4 bg-white"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <h6 className="font-medium text-gray-800">
+                                {index + 1}. {question.question}
+                              </h6>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded capitalize">
+                                  {question.type}
+                                </span>
+                                {question.correctOptions &&
+                                  question.correctOptions.length > 0 && (
+                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                      {question.correctOptions.length} correct
+                                      answer(s)
+                                    </span>
+                                  )}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeExistingQuestion(index)}
+                              className="text-rose-600 hover:text-rose-800 text-sm bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
+
+                          {/* Show options for MCQ questions */}
+                          {(question.type === "mcq" ||
+                            question.type === "multiple") && (
+                            <div className="mt-2">
+                              <div className="text-xs text-gray-500 mb-1">
+                                Options:
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                                {question.options?.map((option, optIndex) => (
+                                  <div
+                                    key={optIndex}
+                                    className={`flex items-center gap-2 p-1 text-sm ${
+                                      question.correctOptions?.includes(
+                                        optIndex
+                                      )
+                                        ? "bg-green-50 text-green-800"
+                                        : "bg-gray-50 text-gray-600"
+                                    }`}
+                                  >
+                                    <div
+                                      className={`w-4 h-4 rounded-full flex items-center justify-center text-xs ${
+                                        question.correctOptions?.includes(
+                                          optIndex
+                                        )
+                                          ? "bg-green-500 text-white"
+                                          : "bg-gray-300"
+                                      }`}
+                                    >
+                                      {optIndex + 1}
+                                    </div>
+                                    <span className="flex-1">{option}</span>
+                                    {question.correctOptions?.includes(
+                                      optIndex
+                                    ) && (
+                                      <span className="text-green-600 text-xs">
+                                        ✓
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Show answer for text questions */}
+                          {question.type === "text" && question.textAnswer && (
+                            <div className="mt-2">
+                              <div className="text-xs text-gray-500">
+                                Expected Answer:
+                              </div>
+                              <div className="text-sm bg-gray-50 p-2 rounded mt-1">
+                                {question.textAnswer}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Show answer for true/false questions */}
+                          {question.type === "truefalse" && (
+                            <div className="mt-2">
+                              <div className="text-xs text-gray-500">
+                                Correct Answer:
+                              </div>
+                              <div className="text-sm bg-gray-50 p-2 rounded mt-1">
+                                {question.trueFalseAnswer ? "True" : "False"}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                      <div className="text-gray-400 text-4xl mb-2">❓</div>
+                      <p className="text-gray-500 text-sm">
+                        No existing questions
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-800 mb-2">Summary</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <div className="text-blue-600">Total Questions</div>
+                    <div className="font-semibold">
+                      {(updatedTestData.questions?.length || 0) +
+                        (updatedTestData.newQuestions?.length || 0)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-blue-600">Existing</div>
+                    <div className="font-semibold">
+                      {updatedTestData.questions?.length || 0}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-green-600">New</div>
+                    <div className="font-semibold text-green-700">
+                      {updatedTestData.newQuestions?.length || 0}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600">Removed</div>
+                    <div className="font-semibold">
+                      {updatedTestData.removedQuestions?.length || 0}
+                    </div>
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="border border-gray-200 rounded-xl p-12 text-center bg-gray-50">
-                <div className="text-4xl mb-4">👆</div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                  Select a Test
-                </h3>
-                <p className="text-gray-500">
-                  Choose a test from the list to view its details
-                </p>
+
+              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowUpdateModal(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingTest}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {updatingTest ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Edit size={16} />
+                      Update Test
+                    </>
+                  )}
+                </button>
               </div>
-            )}
+            </form>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

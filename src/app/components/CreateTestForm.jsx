@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../../lib/firebaseConfig";
+import toast from "react-hot-toast"; // ✅ Import toast
+
 import BasicInfoSection from "./CreateTestForm/BasicInfoSection";
 import TestDetailsSection from "./CreateTestForm/TestDetailsSection";
 import QuestionsSection from "./CreateTestForm/QuestionsSection";
@@ -14,7 +16,7 @@ export default function CreateTestForm() {
   // Basic Info
   const [testName, setTestName] = useState("");
   const [domain, setDomain] = useState("");
-  const [description, setDescription] = useState(""); // new optional domain description
+  const [description, setDescription] = useState("");
 
   // Test Details
   const [instructions, setInstructions] = useState("");
@@ -111,6 +113,8 @@ export default function CreateTestForm() {
     setQuestions(updatedQuestions);
     localStorage.setItem("questions", JSON.stringify(updatedQuestions));
     resetQuestionForm();
+
+    toast.success("Question added ✅");
   };
 
   const resetQuestionForm = () => {
@@ -126,6 +130,8 @@ export default function CreateTestForm() {
     const updatedQuestions = questions.filter((_, i) => i !== index);
     setQuestions(updatedQuestions);
     localStorage.setItem("questions", JSON.stringify(updatedQuestions));
+
+    toast.success("Question deleted 🗑️");
   };
 
   const resetForm = () => {
@@ -141,11 +147,16 @@ export default function CreateTestForm() {
     localStorage.removeItem("createTest");
     localStorage.removeItem("testDetails");
     localStorage.removeItem("questions");
+
+    toast("Form reset 🧹", { icon: "♻️" });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isFormValid()) return;
+    if (!isFormValid()) {
+      toast.error("Please complete all required fields before submitting!");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -192,11 +203,11 @@ export default function CreateTestForm() {
       );
       localStorage.setItem("questions", JSON.stringify(questions));
 
-      alert(`Test "${testName}" created successfully! 🎉`);
+      toast.success(`Test "${testName}" created successfully! 🎉`);
       resetForm();
     } catch (error) {
       console.error(error);
-      alert("Failed to save test. Please try again.");
+      toast.error("Failed to save test. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -256,8 +267,8 @@ export default function CreateTestForm() {
             setTestName={setTestName}
             domain={domain}
             setDomain={setDomain}
-            description={description} // new prop
-            setDescription={setDescription} // new prop
+            description={description}
+            setDescription={setDescription}
             domains={domains}
           />
         )}
@@ -285,6 +296,7 @@ export default function CreateTestForm() {
             clearAllQuestions={() => {
               setQuestions([]);
               localStorage.removeItem("questions");
+              toast("All questions cleared ⚠️");
             }}
             questionType={questionType}
             setQuestionType={setQuestionType}
@@ -299,7 +311,7 @@ export default function CreateTestForm() {
           <TestSummary
             testName={testName}
             domain={domain}
-            description={description} // optional
+            description={description}
             domains={domains}
             questions={questions}
             questionTypeStats={getQuestionTypeStats()}
