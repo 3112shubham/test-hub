@@ -1,34 +1,35 @@
 import { MongoClient } from "mongodb";
 
-const uri = process.env.NEXT_PUBLIC_MONGODB_URI; // your MongoDB connection string
-const options = {};
-
-let client;
-let clientPromise;
+const uri = process.env.NEXT_PUBLIC_MONGODB_URI;
+const options = {
+  maxPoolSize: 10, // Limit connections per instance
+  minPoolSize: 2,
+  maxIdleTimeMS: 30000, // Close idle connections after 30s
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+};
 
 if (!uri) {
   throw new Error("Please add your Mongo URI to .env.local");
 }
 
-// Global variable to cache the MongoClient in development
-if (process.env.NODE_ENV === "development") {
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    global._mongoClientPromise = client.connect();
-  }
-  clientPromise = global._mongoClientPromise;
-} else {
-  // In production, create a new client for each instance
+let client;
+let clientPromise;
+
+// Use global caching in BOTH development and production
+if (!global._mongoClientPromise) {
   client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  global._mongoClientPromise = client.connect();
 }
+
+clientPromise = global._mongoClientPromise;
 
 export default clientPromise;
 
-// Optional helper functions for collections
+// Helper functions remain the same
 export async function getQueueCollection() {
   const client = await clientPromise;
-  return client.db("test-hub").collection("queue"); // Change DB/collection as needed
+  return client.db("test-hub").collection("queue");
 }
 
 export async function getTestSubmissionsCollection() {
