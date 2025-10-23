@@ -44,8 +44,8 @@ export default function Navbar() {
         <Image
           src="/logo.png"
           alt="Logo"
-          width={100}
-          height={100}
+          width={80}
+          height={80}
           className="rounded-lg hover:opacity-90 transition-opacity"
           priority
         />
