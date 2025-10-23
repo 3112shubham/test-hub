@@ -202,7 +202,7 @@ export default function QuestionForm({
   };
 
   return (
-    <div className="p-6 border border-gray-200 rounded-xl bg-gray-50">
+    <div className="p-6 border border-gray-200 rounded-xl ">
       {/* Question Type Navigation */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -297,7 +297,7 @@ export default function QuestionForm({
                       <button
                         type="button"
                         onClick={() => removeOption(index)}
-                        className="w-10 h-10 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                        className="w-10 h-10 flex items-center justify-center text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors"
                         title="Remove option"
                       >
                         <svg

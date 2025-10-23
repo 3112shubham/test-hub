@@ -1,3 +1,5 @@
+import { Delete } from "lucide-react";
+
 export default function NavigationButtons({
   activeSection,
   setActiveSection,
@@ -37,9 +39,10 @@ export default function NavigationButtons({
                 resetForm();
               }
             }}
-            className="bg-orange-500 text-white py-3 px-6 rounded-xl font-medium hover:bg-orange-600 transition-colors duration-200"
+            className="bg-white border border-gray-100 text-rose-600 py-3 px-3 rounded-xl font-medium hover:bg-rose-100 transition-colors duration-200 flex justify-center items-center gap-x-2"
           >
-            🗑️ Clear Form
+            <Delete />
+            Clear Form
           </button>
         )}
       </div>

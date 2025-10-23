@@ -189,7 +189,7 @@ export default function QuestionsForm() {
           {questions.length > 0 && (
             <button
               onClick={clearAllQuestions}
-              className="text-red-600 hover:text-red-700 text-sm font-medium"
+              className="text-rose-600 hover:text-rose-700 text-sm font-medium"
             >
               Clear All
             </button>
@@ -215,7 +215,7 @@ export default function QuestionsForm() {
                   </h4>
                   <button
                     onClick={() => deleteQuestion(index)}
-                    className="text-red-500 hover:text-red-700 ml-2 p-1"
+                    className="text-rose-500 hover:text-rose-700 ml-2 p-1"
                   >
                     🗑️
                   </button>

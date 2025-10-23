@@ -12,7 +12,7 @@ export async function POST(req) {
 
     await batchWriteResponses(testId.toString(), responsesArray);  // ensure string
 
-    return NextResponse.json({ message: "Responses saved" }, { status: 200 });
+    return NextResponse.json({ message: "Re sponses saved" }, { status: 200 });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: err.message }, { status: 500 });

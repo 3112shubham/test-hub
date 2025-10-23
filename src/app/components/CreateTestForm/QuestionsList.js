@@ -57,7 +57,7 @@ export default function QuestionsList({
         {questions.length > 0 && (
           <button
             onClick={clearAllQuestions}
-            className="text-red-600 hover:text-red-800 text-sm font-medium py-2 px-3 hover:bg-red-50 rounded-lg transition-colors"
+            className="text-rose-600 hover:text-rose-800 text-sm font-medium py-2 px-3 hover:bg-rose-50 rounded-lg transition-colors"
           >
             Clear All
           </button>
@@ -88,7 +88,7 @@ export default function QuestionsList({
                 </div>
                 <button
                   onClick={() => deleteQuestion(index)}
-                  className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                  className="text-rose-500 hover:text-rose-700 p-1 rounded transition-colors"
                   title="Delete question"
                 >
                   <svg

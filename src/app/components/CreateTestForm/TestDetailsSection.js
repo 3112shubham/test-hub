@@ -40,7 +40,7 @@ export default function TestDetailsSection({
           {customFields.map((field, index) => (
             <div
               key={field.id}
-              className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+              className="border border-gray-200 rounded-lg p-4 "
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 {/* Field Name */}
@@ -123,7 +123,7 @@ export default function TestDetailsSection({
                             updatedFields[index].options.splice(optionIndex, 1);
                             setCustomFields(updatedFields);
                           }}
-                          className="px-3 py-2 text-red-600 hover:text-red-800 font-medium"
+                          className="px-3 py-2 text-rose-600 hover:text-rose-800 font-medium"
                         >
                           Remove
                         </button>
@@ -176,7 +176,7 @@ export default function TestDetailsSection({
                       );
                       setCustomFields(updatedFields);
                     }}
-                    className="px-3 py-1 text-red-600 hover:text-red-800 font-medium"
+                    className="px-3 py-1 text-rose-600 hover:text-rose-800 font-medium"
                   >
                     Remove Field
                   </button>
