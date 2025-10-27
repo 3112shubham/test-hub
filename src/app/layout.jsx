@@ -5,7 +5,6 @@ import { Toaster } from "react-hot-toast";
 export const metadata = {
   title: "Test Forge",
   description: "Next.js + Firebase Auth Role Routing",
-  icons: "/logo.png",
 };
 
 export default function RootLayout({ children }) {

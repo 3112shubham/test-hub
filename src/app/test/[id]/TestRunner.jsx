@@ -9,6 +9,7 @@ export default function TestRunner({ test }) {
   const [showAllQuestions, setShowAllQuestions] = useState(false);
   const [visitedQuestions, setVisitedQuestions] = useState(new Set());
   const [markedQuestions, setMarkedQuestions] = useState(new Set());
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [customResponses, setCustomResponses] = useState(() => {
     const init = {};
     customFields.forEach((f) => {
@@ -31,6 +32,13 @@ export default function TestRunner({ test }) {
 
   const [validationErrors, setValidationErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState(new Set());
+
+  // Close sidebar when step changes on mobile
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  }, [step]);
 
   // Mark question as visited when step changes
   useEffect(() => {
@@ -148,6 +156,7 @@ export default function TestRunner({ test }) {
     setVisitedQuestions(new Set());
     setMarkedQuestions(new Set());
     setShowAllQuestions(false);
+    setSidebarOpen(false);
   };
 
   // Check if all required fields are filled
@@ -280,7 +289,7 @@ export default function TestRunner({ test }) {
     return (
       <div
         key={qIndex}
-        className={`p-6 border-2 rounded-xl bg-white transition-all duration-200 ${
+        className={`p-4 lg:p-6 border-2 rounded-xl bg-white transition-all duration-200 ${
           isMarked
             ? "border-yellow-400 bg-yellow-50 shadow-md"
             : "border-gray-200 hover:border-gray-300"
@@ -312,14 +321,14 @@ export default function TestRunner({ test }) {
 
         {/* Multiple Choice (Single Select) */}
         {question.type === "mcq" && (
-          <div className="grid grid-cols-1 gap-3 ml-11">
+          <div className="grid grid-cols-1 gap-3 ml-0 lg:ml-11">
             {question.options.map((opt, oi) => {
               const selected = currentAnswer === oi;
               return (
                 <button
                   key={oi}
                   onClick={() => handleAnswer(qIndex, oi, "mcq")}
-                  className={`text-left p-4 rounded-xl border-2 transition-all duration-200 group ${
+                  className={`text-left p-3 lg:p-4 rounded-xl border-2 transition-all duration-200 group ${
                     selected
                       ? "border-blue-500 bg-gradient-to-r from-blue-50 to-blue-25 text-blue-800 shadow-sm"
                       : "border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-25 hover:shadow-md"
@@ -337,7 +346,9 @@ export default function TestRunner({ test }) {
                         <div className="w-2 h-2 bg-white rounded-full shadow-sm"></div>
                       )}
                     </div>
-                    <span className="font-medium text-gray-800">{opt}</span>
+                    <span className="font-medium text-gray-800 text-sm lg:text-base">
+                      {opt}
+                    </span>
                   </div>
                 </button>
               );
@@ -347,14 +358,14 @@ export default function TestRunner({ test }) {
 
         {/* Multiple Correct Answers */}
         {question.type === "multiple" && (
-          <div className="grid grid-cols-1 gap-3 ml-11">
+          <div className="grid grid-cols-1 gap-3 ml-0 lg:ml-11">
             {question.options.map((opt, oi) => {
               const selected = currentAnswer?.includes(oi);
               return (
                 <button
                   key={oi}
                   onClick={() => handleAnswer(qIndex, oi, "multiple")}
-                  className={`text-left p-4 rounded-xl border-2 transition-all duration-200 group ${
+                  className={`text-left p-3 lg:p-4 rounded-xl border-2 transition-all duration-200 group ${
                     selected
                       ? "border-green-500 bg-gradient-to-r from-green-50 to-green-25 text-green-800 shadow-sm"
                       : "border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-25 hover:shadow-md"
@@ -384,7 +395,9 @@ export default function TestRunner({ test }) {
                         </svg>
                       )}
                     </div>
-                    <span className="font-medium text-gray-800">{opt}</span>
+                    <span className="font-medium text-gray-800 text-sm lg:text-base">
+                      {opt}
+                    </span>
                   </div>
                 </button>
               );
@@ -397,14 +410,14 @@ export default function TestRunner({ test }) {
 
         {/* True/False */}
         {question.type === "truefalse" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-11">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4 ml-0 lg:ml-11">
             {["True", "False"].map((option, oi) => {
               const selected = currentAnswer === oi;
               return (
                 <button
                   key={oi}
                   onClick={() => handleAnswer(qIndex, oi, "truefalse")}
-                  className={`p-6 rounded-xl border-2 text-center font-medium transition-all duration-200 group ${
+                  className={`p-4 lg:p-6 rounded-xl border-2 text-center font-medium transition-all duration-200 group ${
                     selected
                       ? "border-purple-500 bg-gradient-to-r from-purple-50 to-purple-25 text-purple-800 shadow-sm"
                       : "border-gray-200 bg-white text-gray-700 hover:border-purple-300 hover:bg-purple-25 hover:shadow-md"
@@ -422,7 +435,9 @@ export default function TestRunner({ test }) {
                         <div className="w-2 h-2 bg-white rounded-full shadow-sm"></div>
                       )}
                     </div>
-                    <span className="text-lg font-semibold">{option}</span>
+                    <span className="text-base lg:text-lg font-semibold">
+                      {option}
+                    </span>
                   </div>
                 </button>
               );
@@ -432,7 +447,7 @@ export default function TestRunner({ test }) {
 
         {/* Text Answer */}
         {question.type === "text" && (
-          <div className="ml-11">
+          <div className="ml-0 lg:ml-11">
             <textarea
               value={currentAnswer || ""}
               onChange={(e) => handleAnswer(qIndex, e.target.value, "text")}
@@ -447,7 +462,7 @@ export default function TestRunner({ test }) {
         )}
 
         {/* Question Type Badge */}
-        <div className="ml-11 mt-4 flex items-center space-x-3">
+        <div className="ml-0 lg:ml-11 mt-4 flex items-center space-x-3 flex-wrap gap-2">
           <span
             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium shadow-sm ${
               question.type === "mcq"
@@ -480,15 +495,49 @@ export default function TestRunner({ test }) {
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-slate-50 to-blue-50 flex">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
       {step >= 0 && (
-        <div className="w-80 bg-white border-r border-gray-200 shadow-sm flex flex-col">
+        <div
+          className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 bg-white border-r border-gray-200 shadow-sm flex flex-col transform transition-transform duration-300 ease-in-out ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }`}
+        >
           {/* Sidebar Header */}
           <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700">
-            <h2 className="text-lg font-bold text-white truncate">
-              {test.testName}
-            </h2>
-            <p className="text-blue-100 text-sm mt-1">Question Navigator</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white truncate">
+                  {test.testName}
+                </h2>
+                <p className="text-blue-100 text-sm mt-1">Question Navigator</p>
+              </div>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden text-white p-2 hover:bg-blue-500 rounded-lg"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Progress Section */}
@@ -555,7 +604,12 @@ export default function TestRunner({ test }) {
                   return (
                     <button
                       key={qIndex}
-                      onClick={() => setStep(qIndex)}
+                      onClick={() => {
+                        setStep(qIndex);
+                        if (window.innerWidth < 1024) {
+                          setSidebarOpen(false);
+                        }
+                      }}
                       className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 ${
                         config.bg
                       } ${config.border} ${config.text} ${
@@ -657,6 +711,59 @@ export default function TestRunner({ test }) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile Header */}
+        {step >= 0 && (
+          <div className="lg:hidden bg-white border-b border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                <svg
+                  className="w-6 h-6 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
+              <div className="flex-1 text-center">
+                <h2 className="text-lg font-bold text-gray-800 truncate">
+                  {test.testName}
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Question {step + 1} of {questions.length}
+                </p>
+              </div>
+              <div className="w-8"> {/* Spacer for balance */}</div>
+            </div>
+
+            {/* Mobile Progress Bar */}
+            <div className="mt-3">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs font-medium text-gray-600">
+                  Progress
+                </span>
+                <span className="text-xs font-bold text-blue-600">
+                  {Math.round(progress)}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Success Alert */}
         {showSuccessAlert && (
           <div className="m-4 p-4 bg-green-50 border border-green-200 rounded-xl shadow-sm">
@@ -687,18 +794,18 @@ export default function TestRunner({ test }) {
         )}
 
         <div className="flex-1 overflow-auto">
-          <div className="max-w-8xl mx-auto p-6">
+          <div className="max-w-8xl mx-auto p-4 lg:p-6">
             {step === -1 ? (
               // Custom Fields Section
-              <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 py-8 px-4">
+              <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 py-4 lg:py-8 px-4">
                 <div className="max-w-4xl mx-auto">
-                  <div className="text-center mb-12">
+                  <div className="text-center mb-8 lg:mb-12">
                     {/* Enhanced header with better visual hierarchy */}
-                    <div className="relative inline-block mb-6">
+                    <div className="relative inline-block mb-4 lg:mb-6">
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur-lg opacity-30 animate-pulse"></div>
-                      <div className="relative w-24 h-24 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                      <div className="relative w-16 h-16 lg:w-24 lg:h-24 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-2xl transform hover:scale-105 transition-transform duration-300">
                         <svg
-                          className="w-12 h-12 text-white"
+                          className="w-8 h-8 lg:w-12 lg:h-12 text-white"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -713,17 +820,17 @@ export default function TestRunner({ test }) {
                       </div>
                     </div>
 
-                    <h3 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-3">
+                    <h3 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-3">
                       Welcome to the Test!
                     </h3>
-                    <p className="text-gray-500 text-lg font-medium">
+                    <p className="text-gray-500 text-base lg:text-lg font-medium">
                       Please provide your details before we begin
                     </p>
                   </div>
 
                   {/* Enhanced form container */}
-                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/60 p-8 mb-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/60 p-4 lg:p-8 mb-6 lg:mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                       {customFields.map((f) => {
                         const fieldId = f.id || f.name;
                         const isRequired = f.required;
@@ -746,7 +853,7 @@ export default function TestRunner({ test }) {
                             {f.type === "dropdown" ? (
                               <div className="relative">
                                 <select
-                                  className={`w-full px-4 py-3.5 border rounded-xl transition-all duration-300 bg-white/50 backdrop-blur-sm shadow-sm hover:shadow-md group-hover:border-blue-300/50 appearance-none cursor-pointer ${
+                                  className={`w-full px-4 py-3 lg:py-3.5 border rounded-xl transition-all duration-300 bg-white/50 backdrop-blur-sm shadow-sm hover:shadow-md group-hover:border-blue-300/50 appearance-none cursor-pointer ${
                                     hasError
                                       ? "border-rose-500 bg-rose-50 text-rose-800 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
                                       : isEmpty
@@ -795,7 +902,7 @@ export default function TestRunner({ test }) {
                               <div className="relative">
                                 <input
                                   type="text"
-                                  className={`w-full px-4 py-3.5 border rounded-md transition-all duration-300 bg-white/50 backdrop-blur-sm shadow-sm hover:shadow-md group-hover:border-blue-300 ${
+                                  className={`w-full px-4 py-3 lg:py-3.5 border rounded-md transition-all duration-300 bg-white/50 backdrop-blur-sm shadow-sm hover:shadow-md group-hover:border-blue-300 ${
                                     hasError
                                       ? "border-rose-500 bg-rose-50 text-rose-800 placeholder-rose-400 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
                                       : "border-gray-200 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
@@ -838,7 +945,7 @@ export default function TestRunner({ test }) {
                     {/* Summary validation message */}
                     {Object.keys(validationErrors).length > 0 &&
                       touchedFields.size > 0 && (
-                        <div className="mt-6 p-4 bg-rose-50 border border-rose-200 rounded-xl animate-fadeIn">
+                        <div className="mt-4 lg:mt-6 p-4 bg-rose-50 border border-rose-200 rounded-xl animate-fadeIn">
                           <div className="flex items-center space-x-3 text-rose-700">
                             <svg
                               className="w-5 h-5 flex-shrink-0"
@@ -871,7 +978,7 @@ export default function TestRunner({ test }) {
                     <button
                       onClick={nextVal}
                       disabled={!isFormValid()}
-                      className="group relative bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-4 rounded-xl font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 active:scale-95 overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-lg"
+                      className="group relative bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 lg:px-12 py-3 lg:py-4 rounded-xl font-semibold text-base lg:text-lg transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 active:scale-95 overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-lg"
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 group-disabled:translate-x-[-100%]"></div>
                       <span className="relative flex items-center justify-center gap-2">
@@ -922,7 +1029,7 @@ export default function TestRunner({ test }) {
                   </button>
                 </div>
 
-                <div className="space-y-8">
+                <div className="space-y-6 lg:space-y-8">
                   {questions.map((question, qIndex) =>
                     renderQuestion(question, qIndex, false)
                   )}
@@ -953,7 +1060,9 @@ export default function TestRunner({ test }) {
                           d="M4 6h16M4 12h16M4 18h16"
                         />
                       </svg>
-                      <span>View All Questions</span>
+                      <span className="hidden sm:inline">
+                        View All Questions
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -964,7 +1073,7 @@ export default function TestRunner({ test }) {
                   <button
                     onClick={prev}
                     disabled={step === 0 && customFields.length === 0}
-                    className="px-6 py-3 border-2 border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    className="px-4 lg:px-6 py-3 border-2 border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                   >
                     <svg
                       className="w-5 h-5"
@@ -979,15 +1088,16 @@ export default function TestRunner({ test }) {
                         d="M15 19l-7-7 7-7"
                       />
                     </svg>
-                    <span>Previous</span>
+                    <span className="hidden sm:inline">Previous</span>
                   </button>
 
                   {step < questions.length - 1 ? (
                     <button
                       onClick={next}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center space-x-2"
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 lg:px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center space-x-2"
                     >
-                      <span>Next Question</span>
+                      <span className="hidden sm:inline">Next Question</span>
+                      <span className="sm:hidden">Next</span>
                       <svg
                         className="w-5 h-5"
                         fill="none"
@@ -1006,7 +1116,7 @@ export default function TestRunner({ test }) {
                     <button
                       onClick={handleSubmit}
                       disabled={loading}
-                      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 lg:px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
                       {loading ? (
                         <>
