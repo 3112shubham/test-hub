@@ -20,7 +20,6 @@ import {
   Edit,
   X,
 } from "lucide-react";
-import QuestionEditor from "./QuestionEditor";
 import toast from "react-hot-toast";
 
 export default function ViewTests() {
