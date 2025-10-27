@@ -19,6 +19,7 @@ import {
   RefreshCcw,
   Edit,
   X,
+  Delete,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -76,7 +77,6 @@ export default function ViewTests() {
   const refreshTestsWithSync = async () => {
     setLoading(true);
     try {
-      await handleSyncQueue(); // Sync first
       await loadTests(); // Then refresh
     } catch (error) {
       console.error("Error in refresh with sync:", error);
@@ -415,7 +415,7 @@ export default function ViewTests() {
               {selectedTest ? (
                 <div className="border border-gray-200 rounded-xl p-4">
                   <div className="flex flex-col py-2 gap-y-5">
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start gap-2 text-sm">
                       <div className="flex-1">
                         <h3 className="text-2xl font-bold text-gray-900 mb-2">
                           {selectedTest.testName}
@@ -449,16 +449,39 @@ export default function ViewTests() {
                         <Download size={16} />
                         <span>Export</span>
                       </button>
+                       {/* Delete */}
+                        <button
+                          onClick={() => handleDeleteTest(selectedTest.id)}
+                          className="flex items-center gap-2 bg-rose-500 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-rose-600 hover:shadow-md transition-all"
+                        >
+                          <Trash2 size={16} />
+                          <span>Delete</span>
+                        </button>
+                      <button
+                          onClick={() => setShowDuplicateModal(true)}
+                          className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-emerald-700 hover:shadow-md transition-all"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                          <span>Duplicate</span>
+                        </button>
                     </div>
-                    <div className="flex flex-col items-center gap-3 text-sm">
-                      {/* Reminder */}
-                      <span className="text-xs text-amber-600 font-medium bg-amber-50 px-3 py-1 rounded-md border border-amber-200 shadow-sm">
-                        ⚠️ Always <strong>Sync Queue</strong> before exporting
-                        to avoid loss of responses.
-                      </span>
+                    <div className="flex flex-col items-start gap-3 text-sm">
 
                       {/* Buttons */}
-                      <div className="flex justify-center flex-wrap gap-2 text-sm">
+                      <div className="flex justify-start flex-wrap gap-2 text-sm">
                         {/* Sync Queue */}
 
                         <button
@@ -507,38 +530,21 @@ export default function ViewTests() {
                             <span>Update Test</span>
                           </button>
                         )}
-
-                        {/* Duplicate Test Button */}
                         <button
-                          onClick={() => setShowDuplicateModal(true)}
-                          className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-emerald-700 hover:shadow-md transition-all"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                            />
-                          </svg>
-                          <span>Duplicate</span>
-                        </button>
-
-                        {/* Delete */}
-                        <button
-                          onClick={() => handleDeleteTest(selectedTest.id)}
-                          className="flex items-center gap-2 bg-rose-500 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-rose-600 hover:shadow-md transition-all"
+                          onClick={handleSyncQueue}
+                          className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-rose-700 hover:shadow-md transition-all"
                         >
                           <Trash2 size={16} />
-                          <span>Delete</span>
+                          <span>Clear Responses</span>
                         </button>
+                       
+
+                       
                       </div>
+                       {/* Duplicate Test Button */}
+                        <span className="text-xs text-amber-600 font-medium bg-amber-50 px-3 py-1 rounded-md border border-amber-200 shadow-sm">
+                        ⚠️ <strong>Unpublish</strong> the test first to update test.
+                      </span>
                     </div>
                   </div>
 
