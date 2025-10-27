@@ -7,6 +7,7 @@ import {
   unpublishTest,
   updateTest,
 } from "../../lib/testOperations";
+import DuplicateTest from "./DuplicateTest";
 import { exportTestToExcel } from "@/utils/ExportToExcel";
 import {
   Download,
@@ -36,6 +37,7 @@ export default function ViewTests() {
     newQuestions: [], // New questions to be added
     removedQuestions: [], // Questions to be removed
   });
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
   // Load tests from Firestore
   useEffect(() => {
@@ -617,6 +619,28 @@ export default function ViewTests() {
                           </button>
                         )}
 
+                        {/* Duplicate Test Button */}
+                        <button
+                          onClick={() => setShowDuplicateModal(true)}
+                          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-green-700 hover:shadow-md transition-all"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                          <span>Duplicate</span>
+                        </button>
+
                         {/* Delete */}
                         <button
                           onClick={() => handleDeleteTest(selectedTest.id)}
@@ -1171,6 +1195,15 @@ export default function ViewTests() {
             </form>
           </div>
         </div>
+      )}
+      {showDuplicateModal && selectedTest && (
+        <DuplicateTest
+          test={selectedTest}
+          onClose={() => {
+            setShowDuplicateModal(false);
+            refreshTests();
+          }}
+        />
       )}
     </>
   );

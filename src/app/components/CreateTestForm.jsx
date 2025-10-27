@@ -12,15 +12,15 @@ import NavigationTabs from "./CreateTestForm/NavigationTabs";
 import TestSummary from "./CreateTestForm/TestSummary";
 import NavigationButtons from "./CreateTestForm/NavigationButtons";
 
-export default function CreateTestForm() {
+export default function CreateTestForm({ initialData = null, onSubmit, isSubmitting: externalIsSubmitting }) {
   // Basic Info
-  const [testName, setTestName] = useState("");
-  const [domain, setDomain] = useState("");
-  const [description, setDescription] = useState("");
+  const [testName, setTestName] = useState(initialData?.testName || "");
+  const [domain, setDomain] = useState(initialData?.domain || "");
+  const [description, setDescription] = useState(initialData?.description || "");
 
   // Test Details
-  const [instructions, setInstructions] = useState("");
-  const [customFields, setCustomFields] = useState([]);
+  const [instructions, setInstructions] = useState(initialData?.instructions || "");
+  const [customFields, setCustomFields] = useState(initialData?.customFields || []);
 
   // Questions
   const [question, setQuestion] = useState("");
@@ -43,29 +43,33 @@ export default function CreateTestForm() {
     { value: "language", label: "Language" },
   ];
 
-  // Load saved data
+  // Load initial data or saved data
   useEffect(() => {
-    const savedTest = localStorage.getItem("createTest");
-    const savedDetails = localStorage.getItem("testDetails");
-    const savedQuestions = localStorage.getItem("questions");
+    if (initialData) {
+      setQuestions(initialData.questions || []);
+    } else {
+      const savedTest = localStorage.getItem("createTest");
+      const savedDetails = localStorage.getItem("testDetails");
+      const savedQuestions = localStorage.getItem("questions");
 
-    if (savedTest) {
-      const testData = JSON.parse(savedTest);
-      setTestName(testData.testName || "");
-      setDomain(testData.domain || "");
-      setDescription(testData.description || "");
-    }
+      if (savedTest) {
+        const testData = JSON.parse(savedTest);
+        setTestName(testData.testName || "");
+        setDomain(testData.domain || "");
+        setDescription(testData.description || "");
+      }
 
-    if (savedDetails) {
-      const detailsData = JSON.parse(savedDetails);
-      setInstructions(detailsData.instructions || "");
-      setCustomFields(detailsData.customFields || []);
-    }
+      if (savedDetails) {
+        const detailsData = JSON.parse(savedDetails);
+        setInstructions(detailsData.instructions || "");
+        setCustomFields(detailsData.customFields || []);
+      }
 
-    if (savedQuestions) {
-      setQuestions(JSON.parse(savedQuestions));
+      if (savedQuestions) {
+        setQuestions(JSON.parse(savedQuestions));
+      }
     }
-  }, []);
+  }, [initialData]);
 
   // Initialize options based on question type
   useEffect(() => {
@@ -158,11 +162,14 @@ export default function CreateTestForm() {
       return;
     }
 
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error("You must be logged in!");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const user = auth.currentUser;
-      if (!user) throw new Error("You must be logged in to create a test!");
-
       const questionStats = questions.reduce((acc, q) => {
         acc[q.type] = (acc[q.type] || 0) + 1;
         return acc;
@@ -178,33 +185,39 @@ export default function CreateTestForm() {
         ),
         questions,
         totalQuestions: questions.length,
-        questionTypes: questionStats,
-        createdAt: serverTimestamp(),
-        createdBy: user.uid,
-        createdByEmail: user.email,
-        status: "inactive",
-        responses: [],
-        totalResponses: 0,
+        questionTypes: questionStats
       };
 
-      const docRef = await addDoc(collection(db, "tests"), testData);
-
-      localStorage.setItem(
-        "createTest",
-        JSON.stringify({
+      if (onSubmit) {
+        await onSubmit(testData);
+      } else {
+        const docRef = await addDoc(collection(db, "tests"), {
           ...testData,
-          id: docRef.id,
-          createdAt: new Date().toISOString(),
-        })
-      );
-      localStorage.setItem(
-        "testDetails",
-        JSON.stringify({ instructions, customFields })
-      );
-      localStorage.setItem("questions", JSON.stringify(questions));
+          createdAt: serverTimestamp(),
+          createdBy: user.uid,
+          createdByEmail: user.email,
+          status: "inactive",
+          responses: [],
+          totalResponses: 0,
+        });
 
-      toast.success(`Test "${testName}" created successfully! 🎉`);
-      resetForm();
+        localStorage.setItem(
+          "createTest",
+          JSON.stringify({
+            ...testData,
+            id: docRef.id,
+            createdAt: new Date().toISOString(),
+          })
+        );
+        localStorage.setItem(
+          "testDetails",
+          JSON.stringify({ instructions, customFields })
+        );
+        localStorage.setItem("questions", JSON.stringify(questions));
+
+        toast.success(`Test "${testName}" created successfully! 🎉`);
+        resetForm();
+      }
     } catch (error) {
       console.error(error);
       toast.error("Failed to save test. Please try again.");
