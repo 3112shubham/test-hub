@@ -8,6 +8,7 @@ import {
   updateTest,
 } from "../../lib/testOperations";
 import DuplicateTest from "./DuplicateTest";
+import CreateTestForm from "./CreateTestForm";
 import { exportTestToExcel } from "@/utils/ExportToExcel";
 import {
   Download,
@@ -322,6 +323,50 @@ export default function ViewTests() {
   const handleUpdateTest = (testId) => {
     if (!selectedTest) return;
     setShowUpdateModal(true);
+  };
+
+  // Handler used when CreateTestForm submits updated data for an existing test
+  const handleUpdateWithForm = async (updatedFields) => {
+    if (!selectedTest) return;
+    setUpdatingTest(true);
+    try {
+      // Preserve fields we don't want to overwrite
+      const preserved = {
+        responses: selectedTest.responses || [],
+        totalResponses:
+          typeof selectedTest.totalResponses === "number"
+            ? selectedTest.totalResponses
+            : selectedTest.responses
+            ? selectedTest.responses.length
+            : 0,
+        createdAt: selectedTest.createdAt,
+        createdBy: selectedTest.createdBy,
+        createdByEmail: selectedTest.createdByEmail,
+        status: selectedTest.status || "inactive",
+      };
+
+      const updateData = {
+        ...updatedFields,
+        ...preserved,
+        totalQuestions: (updatedFields.questions || []).length,
+      };
+
+      await updateTest(selectedTest.id, updateData);
+
+      // Update local state
+      setTests((prev) =>
+        prev.map((t) => (t.id === selectedTest.id ? { ...t, ...updateData } : t))
+      );
+      setSelectedTest((s) => ({ ...s, ...updateData }));
+
+      toast.success("Test updated successfully!");
+      setShowUpdateModal(false);
+    } catch (error) {
+      console.error("Error updating test via form:", error);
+      toast.error("Failed to update test. Please try again.");
+    } finally {
+      setUpdatingTest(false);
+    }
   };
 
   const handleUpdateSubmit = async (e) => {
@@ -854,345 +899,28 @@ export default function ViewTests() {
           </div>
         )}
       </div>
-      {/* Update Test Modal */}
-      {showUpdateModal && (
-        <div className="fixed inset-0 bg-black/30 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+      {/* Update Test Modal - reuse CreateTestForm */}
+      {showUpdateModal && selectedTest && (
+        <div className="fixed inset-0 bg-gray-600/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-7xl relative flex flex-col h-[90vh]">
+            <button
+              onClick={() => setShowUpdateModal(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-xl font-bold text-gray-900">Update Test</h3>
-              <button
-                onClick={() => setShowUpdateModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={24} />
-              </button>
             </div>
 
-            <form onSubmit={handleUpdateSubmit} className="p-6 space-y-6">
-              {/* Basic Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Test Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={updatedTestData.testName}
-                    onChange={(e) =>
-                      setUpdatedTestData((prev) => ({
-                        ...prev,
-                        testName: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Domain *
-                  </label>
-                  <select
-                    required
-                    value={updatedTestData.domain}
-                    onChange={(e) =>
-                      setUpdatedTestData((prev) => ({
-                        ...prev,
-                        domain: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Domain</option>
-                    {domains.map((domain) => (
-                      <option key={domain.value} value={domain.value}>
-                        {domain.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={updatedTestData.description}
-                    onChange={(e) =>
-                      setUpdatedTestData((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter a description for the test..."
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Instructions
-                  </label>
-                  <textarea
-                    value={updatedTestData.instructions}
-                    onChange={(e) =>
-                      setUpdatedTestData((prev) => ({
-                        ...prev,
-                        instructions: e.target.value,
-                      }))
-                    }
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter test instructions for students..."
-                  />
-                </div>
-              </div>
-
-              {/* Questions Section */}
-              <div className="border-t border-gray-200 pt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-800">
-                      Questions (
-                      {(updatedTestData.questions?.length || 0) +
-                        (updatedTestData.newQuestions?.length || 0)}
-                      )
-                    </h4>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Existing questions are preserved. Add new questions or
-                      remove unwanted ones.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addNewQuestion}
-                    className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    <span>+</span>
-                    Add New Question
-                  </button>
-                </div>
-
-                {/* New Questions Section */}
-                {updatedTestData.newQuestions &&
-                  updatedTestData.newQuestions.length > 0 && (
-                    <div className="mb-6">
-                      <h5 className="font-medium text-green-700 mb-3 flex items-center gap-2">
-                        <span>New Questions</span>
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                          {updatedTestData.newQuestions.length} new
-                        </span>
-                      </h5>
-                      <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
-                        {updatedTestData.newQuestions.map((question, index) => (
-                          <QuestionEditor
-                            key={`new-${index}`}
-                            question={question}
-                            index={index}
-                            isNew={true}
-                            onUpdate={(field, value) =>
-                              updateNewQuestion(index, field, value)
-                            }
-                            onRemove={() => removeNewQuestion(index)}
-                            onAddOption={() => addNewQuestionOption(index)}
-                            onRemoveOption={(optIndex) =>
-                              removeNewQuestionOption(index, optIndex)
-                            }
-                            onUpdateOption={(optIndex, value) =>
-                              updateNewQuestionOption(index, optIndex, value)
-                            }
-                            onToggleCorrectOption={(optIndex) =>
-                              toggleNewQuestionCorrectOption(index, optIndex)
-                            }
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                {/* Existing Questions Section */}
-                <div>
-                  <h5 className="font-medium text-gray-700 mb-3">
-                    Existing Questions ({updatedTestData.questions?.length || 0}
-                    )
-                  </h5>
-                  {updatedTestData.questions &&
-                  updatedTestData.questions.length > 0 ? (
-                    <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
-                      {updatedTestData.questions.map((question, index) => (
-                        <div
-                          key={index}
-                          className="border border-gray-200 rounded-lg p-4 bg-white"
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex-1">
-                              <h6 className="font-medium text-gray-800">
-                                {index + 1}. {question.question}
-                              </h6>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded capitalize">
-                                  {question.type}
-                                </span>
-                                {question.correctOptions &&
-                                  question.correctOptions.length > 0 && (
-                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                      {question.correctOptions.length} correct
-                                      answer(s)
-                                    </span>
-                                  )}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeExistingQuestion(index)}
-                              className="text-rose-600 hover:text-rose-800 text-sm bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded transition-colors"
-                            >
-                              Remove
-                            </button>
-                          </div>
-
-                          {/* Show options for MCQ questions */}
-                          {(question.type === "mcq" ||
-                            question.type === "multiple") && (
-                            <div className="mt-2">
-                              <div className="text-xs text-gray-500 mb-1">
-                                Options:
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                                {question.options?.map((option, optIndex) => (
-                                  <div
-                                    key={optIndex}
-                                    className={`flex items-center gap-2 p-1 text-sm ${
-                                      question.correctOptions?.includes(
-                                        optIndex
-                                      )
-                                        ? "bg-green-50 text-green-800"
-                                        : "bg-gray-50 text-gray-600"
-                                    }`}
-                                  >
-                                    <div
-                                      className={`w-4 h-4 rounded-full flex items-center justify-center text-xs ${
-                                        question.correctOptions?.includes(
-                                          optIndex
-                                        )
-                                          ? "bg-green-500 text-white"
-                                          : "bg-gray-300"
-                                      }`}
-                                    >
-                                      {optIndex + 1}
-                                    </div>
-                                    <span className="flex-1">{option}</span>
-                                    {question.correctOptions?.includes(
-                                      optIndex
-                                    ) && (
-                                      <span className="text-green-600 text-xs">
-                                        ✓
-                                      </span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Show answer for text questions */}
-                          {question.type === "text" && question.textAnswer && (
-                            <div className="mt-2">
-                              <div className="text-xs text-gray-500">
-                                Expected Answer:
-                              </div>
-                              <div className="text-sm bg-gray-50 p-2 rounded mt-1">
-                                {question.textAnswer}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Show answer for true/false questions */}
-                          {question.type === "truefalse" && (
-                            <div className="mt-2">
-                              <div className="text-xs text-gray-500">
-                                Correct Answer:
-                              </div>
-                              <div className="text-sm bg-gray-50 p-2 rounded mt-1">
-                                {question.trueFalseAnswer ? "True" : "False"}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                      <div className="text-gray-400 text-4xl mb-2">❓</div>
-                      <p className="text-gray-500 text-sm">
-                        No existing questions
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Summary */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-800 mb-2">Summary</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <div className="text-blue-600">Total Questions</div>
-                    <div className="font-semibold">
-                      {(updatedTestData.questions?.length || 0) +
-                        (updatedTestData.newQuestions?.length || 0)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-blue-600">Existing</div>
-                    <div className="font-semibold">
-                      {updatedTestData.questions?.length || 0}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-green-600">New</div>
-                    <div className="font-semibold text-green-700">
-                      {updatedTestData.newQuestions?.length || 0}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-gray-600">Removed</div>
-                    <div className="font-semibold">
-                      {updatedTestData.removedQuestions?.length || 0}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setShowUpdateModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={updatingTest}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {updatingTest ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Edit size={16} />
-                      Update Test
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+            <div className="flex-1 overflow-hidden">
+              <CreateTestForm
+                initialData={selectedTest}
+                onSubmit={handleUpdateWithForm}
+                isSubmitting={updatingTest}
+              />
+            </div>
           </div>
         </div>
       )}
