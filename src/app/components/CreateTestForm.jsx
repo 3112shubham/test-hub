@@ -17,6 +17,7 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
   const [testName, setTestName] = useState(initialData?.testName || "");
   const [domain, setDomain] = useState(initialData?.domain || "");
   const [description, setDescription] = useState(initialData?.description || "");
+  const [password, setPassword] = useState(initialData?.password || "");
 
   // Test Details
   const [instructions, setInstructions] = useState(initialData?.instructions || "");
@@ -180,6 +181,7 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
         domain,
         description,
         instructions,
+        password,
         customFields: customFields.filter(
           (f) => f.name && f.name.trim() !== ""
         ),
@@ -283,6 +285,7 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
             description={description}
             setDescription={setDescription}
             domains={domains}
+            password={setPassword}
           />
         )}
 
