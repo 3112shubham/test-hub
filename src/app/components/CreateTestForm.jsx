@@ -233,7 +233,7 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
     const questionsValid = questions.every((q) => {
       switch (q.type) {
         case "text":
-          return q.textAnswer && q.textAnswer.trim().length > 0;
+          return true;
         case "truefalse":
           return q.correctOptions.length === 1;
         case "mcq":

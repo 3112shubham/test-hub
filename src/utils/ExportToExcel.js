@@ -38,7 +38,10 @@ export const exportTestToExcel = async (test) => {
   responseColumns.push(
     { header: "Response ID", key: "responseId", width: 20 },
     { header: "Submitted At", key: "submittedAt", width: 25 },
-    { header: "Status", key: "status", width: 15 }
+    { header: "Status", key: "status", width: 15 },
+    { header: "Score", key: "score", width: 15 },
+    { header: "Total Questions", key: "total", width: 15 },
+    { header: "Percentage", key: "percentage", width: 15 }
   );
 
   // Add question answer columns
@@ -59,6 +62,12 @@ export const exportTestToExcel = async (test) => {
       submittedAt: formatFirestoreTimestamp(response.submittedAt),
       status: response.status || "submitted",
     };
+
+    // Calculate and add score
+    const scoreDetails = calculateScore(response, test.questions);
+    rowData.score = scoreDetails.score;
+    rowData.total = scoreDetails.total;
+    rowData.percentage = `${scoreDetails.percentage}%`;
 
     // Initialize custom fields as "N/A"
     if (test.customFields) {
@@ -106,7 +115,7 @@ export const exportTestToExcel = async (test) => {
             break;
 
           case "multiple":
-            if (Array.isArray(userAnswer)) {
+            if (Array.isArray(userAnswer) && userAnswer.length > 0) {
               answerText = userAnswer
                 .map(
                   (optIdx) =>
@@ -114,16 +123,16 @@ export const exportTestToExcel = async (test) => {
                 )
                 .join(", ");
             } else {
-              answerText = `Invalid: ${typeof userAnswer}`;
+              answerText = "Not Attempted";
             }
             break;
 
           case "truefalse":
             if (typeof userAnswer === "boolean") {
               answerText = userAnswer ? "True" : "False";
-            } else if (userAnswer === 1 || userAnswer === "1") {
-              answerText = "True";
             } else if (userAnswer === 0 || userAnswer === "0") {
+              answerText = "True";
+            } else if (userAnswer === 1 || userAnswer === "1") {
               answerText = "False";
             } else {
               answerText = `Invalid: ${userAnswer}`;
@@ -132,7 +141,7 @@ export const exportTestToExcel = async (test) => {
 
           case "text":
             if (typeof userAnswer === "string") {
-              answerText = userAnswer || "No answer provided";
+              answerText = userAnswer || "Not Attempted";
             } else {
               answerText = `Invalid: ${typeof userAnswer}`;
             }
@@ -192,4 +201,50 @@ const arraysEqual = (a, b) => {
   if (!Array.isArray(a) || !Array.isArray(b)) return false;
   if (a.length !== b.length) return false;
   return a.every((val, index) => val === b[index]);
+};
+
+// Calculate score for a single response
+const calculateScore = (response, questions) => {
+  if (!response?.answers || !questions) return 0;
+  
+  let score = 0;
+  const totalQuestions = questions.length;
+  
+  response.answers.forEach(answer => {
+    const question = questions[answer.questionIndex];
+    if (!question) return;
+
+    switch (question.type) {
+      case "mcq":
+        if (Array.isArray(answer.answer)) {
+          // If answer is array, check first element
+          if (answer.answer[0] === question.correctOptions?.[0]) score++;
+        } else if (answer.answer === question.correctOptions?.[0]) score++;
+        break;
+        
+      case "multiple":
+        if (Array.isArray(answer.answer) && Array.isArray(question.correctOptions)) {
+          // For multiple, check if arrays contain same elements
+          const answersSorted = [...answer.answer].sort();
+          const correctSorted = [...question.correctOptions].sort();
+          if (arraysEqual(answersSorted, correctSorted)) score++;
+        }
+        break;
+        
+      case "truefalse":
+        const answerBoolean = answer.answer === 0 || answer.answer === true;
+        if (answerBoolean === question.trueFalseAnswer) score++;
+        break;
+        
+      case "text":
+        score++;
+        break;
+    }
+  });
+
+  return {
+    score,
+    total: totalQuestions,
+    percentage: Math.round((score / totalQuestions) * 100)
+  };
 };

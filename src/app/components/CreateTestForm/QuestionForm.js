@@ -161,7 +161,7 @@ export default function QuestionForm({
       case "truefalse":
         return correctOptions.length === 1;
       case "text":
-        return textAnswer.trim().length > 0;
+        return true;
       default:
         return false;
     }
