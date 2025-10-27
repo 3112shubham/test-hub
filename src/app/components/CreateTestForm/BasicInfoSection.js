@@ -6,6 +6,8 @@ export default function BasicInfoSection({
   description,
   setDescription,
   domains,
+  password,
+  setPassword, // ✅ Add this prop
 }) {
   return (
     <div className="space-y-6">
@@ -58,6 +60,24 @@ export default function BasicInfoSection({
             placeholder="Enter a description for the domain (optional)..."
           />
         </div>
+      </div>
+
+      {/* Test Password - Moved outside the grid for better layout */}
+      <div className="md:col-span-2">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Test Password *
+        </label>
+        <input
+          type="text"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)} 
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+          placeholder="Enter password that students will use to access this test"
+        />
+        <p className="text-xs text-gray-500 mt-2">
+          This password will be required for students to start the test
+        </p>
       </div>
     </div>
   );

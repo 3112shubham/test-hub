@@ -17,6 +17,8 @@ export default function TestRunner({ test }) {
     });
     return init;
   });
+  const [testPassword, setTestPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   const [answers, setAnswers] = useState(() =>
     questions.map((q) => {
@@ -46,6 +48,16 @@ export default function TestRunner({ test }) {
       setVisitedQuestions((prev) => new Set([...prev, step]));
     }
   }, [step]);
+
+  const validatePassword = () => {
+    if (!test.password) return true; // No password required
+    if (testPassword === test.password) {
+      setPasswordError("");
+      return true;
+    }
+    setPasswordError("Incorrect password. Please check with your instructor.");
+    return false;
+  };
 
   const setCustomValue = (id, value) => {
     setCustomResponses((prev) => {
@@ -188,12 +200,14 @@ export default function TestRunner({ test }) {
     validateCustomFields();
   };
 
-  // Update the next function to validate before proceeding
   const nextVal = () => {
     if (step === -1) {
-      // Validate custom fields before proceeding to questions
+      // Validate password first
+      if (test.password && !validatePassword()) {
+        return;
+      }
+      // Then validate custom fields
       if (!validateCustomFields()) {
-        // Mark all fields as touched to show errors
         const allFieldIds = customFields.map((f) => f.id || f.name);
         setTouchedFields(new Set(allFieldIds));
         return;
@@ -204,8 +218,16 @@ export default function TestRunner({ test }) {
     }
   };
 
-  // Add this helper function to check if form is valid
+  // Fix the isFormValid function
   const isFormValid = () => {
+    // Check password first
+    if (test.password) {
+      if (testPassword !== test.password) {
+        return false;
+      }
+    }
+
+    // Then check custom fields
     return customFields.every((f) => {
       if (!f.required) return true;
 
@@ -258,6 +280,7 @@ export default function TestRunner({ test }) {
       setMessage("Failed to submit. Try again.");
     } finally {
       setLoading(false);
+      setTestPassword("")
     }
   };
 
@@ -827,6 +850,80 @@ export default function TestRunner({ test }) {
                       Please provide your details before we begin
                     </p>
                   </div>
+
+                  {/* ADD THE PASSWORD SECTION HERE */}
+                  {test.password && (
+                    <div className="mb-6">
+                      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/60 p-6">
+                        <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                          <svg
+                            className="w-5 h-5 text-blue-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                            />
+                          </svg>
+                          Test Access Required
+                        </h4>
+                        <div className="space-y-3">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Enter Test Password *
+                          </label>
+                          <input
+                            type="text"
+                            value={testPassword}
+                            onChange={(e) => {
+                              setTestPassword(e.target.value);
+                              // Clear error when user starts typing
+                              if (passwordError) {
+                                setPasswordError("");
+                              }
+                            }}
+                            onBlur={() => {
+                              // Validate only when user leaves the field
+                              if (
+                                test.password &&
+                                testPassword &&
+                                testPassword !== test.password
+                              ) {
+                                setPasswordError(
+                                  "Incorrect password. Please check with your instructor."
+                                );
+                              }
+                            }}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                              passwordError
+                                ? "border-rose-500 bg-rose-50"
+                                : "border-gray-300"
+                            }`}
+                            placeholder="Enter the password provided by your instructor"
+                          />
+                          {passwordError && (
+                            <p className="text-rose-600 text-sm flex items-center gap-2">
+                              <svg
+                                className="w-4 h-4"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              {passwordError}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Enhanced form container */}
                   <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/60 p-4 lg:p-8 mb-6 lg:mb-8">

@@ -53,6 +53,7 @@ export default function ViewTests() {
         domain: selectedTest.domain || "",
         description: selectedTest.description || "",
         instructions: selectedTest.instructions || "",
+        password: selectedTest.password || "", // Add this line
         questions: selectedTest.questions || [], // Preserve existing questions
         newQuestions: [], // Start with empty new questions
         removedQuestions: [], // Start with empty removed questions
@@ -86,119 +87,7 @@ export default function ViewTests() {
     }
   };
 
-  // Add these functions to your component
-
-  const addNewQuestion = () => {
-    setUpdatedTestData((prev) => ({
-      ...prev,
-      newQuestions: [
-        ...(prev.newQuestions || []),
-        {
-          question: "",
-          type: "mcq",
-          options: ["", ""],
-          correctOptions: [],
-          textAnswer: "",
-          trueFalseAnswer: null,
-        },
-      ],
-    }));
-  };
-
-  // Remove existing question (moves to removedQuestions)
-  const removeExistingQuestion = (index) => {
-    setUpdatedTestData((prev) => ({
-      ...prev,
-      questions: prev.questions.filter((_, i) => i !== index),
-      removedQuestions: [
-        ...(prev.removedQuestions || []),
-        prev.questions[index],
-      ],
-    }));
-  };
-
-  // Remove new question (completely removes it since it wasn't saved yet)
-  const removeNewQuestion = (index) => {
-    setUpdatedTestData((prev) => ({
-      ...prev,
-      newQuestions: prev.newQuestions.filter((_, i) => i !== index),
-    }));
-  };
-
-  // Update handlers for new questions
-  const updateNewQuestion = (index, field, value) => {
-    setUpdatedTestData((prev) => ({
-      ...prev,
-      newQuestions: prev.newQuestions.map((q, i) =>
-        i === index ? { ...q, [field]: value } : q
-      ),
-    }));
-  };
-
-  const addNewQuestionOption = (questionIndex) => {
-    setUpdatedTestData((prev) => ({
-      ...prev,
-      newQuestions: prev.newQuestions.map((q, i) =>
-        i === questionIndex ? { ...q, options: [...q.options, ""] } : q
-      ),
-    }));
-  };
-
-  const removeNewQuestionOption = (questionIndex, optionIndex) => {
-    setUpdatedTestData((prev) => ({
-      ...prev,
-      newQuestions: prev.newQuestions.map((q, i) =>
-        i === questionIndex
-          ? {
-              ...q,
-              options: q.options.filter((_, j) => j !== optionIndex),
-              correctOptions: q.correctOptions
-                .filter((opt) => opt !== optionIndex)
-                .map((opt) => (opt > optionIndex ? opt - 1 : opt)),
-            }
-          : q
-      ),
-    }));
-  };
-
-  const updateNewQuestionOption = (questionIndex, optionIndex, value) => {
-    setUpdatedTestData((prev) => ({
-      ...prev,
-      newQuestions: prev.newQuestions.map((q, i) =>
-        i === questionIndex
-          ? {
-              ...q,
-              options: q.options.map((opt, j) =>
-                j === optionIndex ? value : opt
-              ),
-            }
-          : q
-      ),
-    }));
-  };
-
-  const toggleNewQuestionCorrectOption = (questionIndex, optionIndex) => {
-    setUpdatedTestData((prev) => ({
-      ...prev,
-      newQuestions: prev.newQuestions.map((q, i) => {
-        if (i !== questionIndex) return q;
-
-        const currentQuestion = prev.newQuestions[questionIndex];
-        const isMultiple = currentQuestion.type === "multiple";
-        const currentCorrectOptions = currentQuestion.correctOptions || [];
-
-        if (isMultiple) {
-          const newCorrectOptions = currentCorrectOptions.includes(optionIndex)
-            ? currentCorrectOptions.filter((opt) => opt !== optionIndex)
-            : [...currentCorrectOptions, optionIndex];
-          return { ...q, correctOptions: newCorrectOptions };
-        } else {
-          return { ...q, correctOptions: [optionIndex] };
-        }
-      }),
-    }));
-  };
-
+  //fix later export sync but exports the old data
   const exportTestWithSync = async () => {
     if (!selectedTest) return;
 
@@ -343,6 +232,8 @@ export default function ViewTests() {
         createdBy: selectedTest.createdBy,
         createdByEmail: selectedTest.createdByEmail,
         status: selectedTest.status || "inactive",
+        // Preserve password if not provided in update
+        password: updatedFields.password || selectedTest.password,
       };
 
       const updateData = {
@@ -355,7 +246,9 @@ export default function ViewTests() {
 
       // Update local state
       setTests((prev) =>
-        prev.map((t) => (t.id === selectedTest.id ? { ...t, ...updateData } : t))
+        prev.map((t) =>
+          t.id === selectedTest.id ? { ...t, ...updateData } : t
+        )
       );
       setSelectedTest((s) => ({ ...s, ...updateData }));
 
@@ -363,57 +256,6 @@ export default function ViewTests() {
       setShowUpdateModal(false);
     } catch (error) {
       console.error("Error updating test via form:", error);
-      toast.error("Failed to update test. Please try again.");
-    } finally {
-      setUpdatingTest(false);
-    }
-  };
-
-  const handleUpdateSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedTest) return;
-
-    setUpdatingTest(true);
-    try {
-      // Combine existing (non-removed) questions with new questions
-      const finalQuestions = [
-        ...updatedTestData.questions, // Remaining existing questions
-        ...updatedTestData.newQuestions, // Newly added questions
-      ];
-
-      const updateData = {
-        testName: updatedTestData.testName,
-        domain: updatedTestData.domain,
-        description: updatedTestData.description,
-        instructions: updatedTestData.instructions,
-        questions: finalQuestions,
-        totalQuestions: finalQuestions.length,
-      };
-
-      await updateTest(selectedTest.id, updateData);
-
-      // Update local state
-      setTests((prev) =>
-        prev.map((t) =>
-          t.id === selectedTest.id
-            ? {
-                ...t,
-                ...updateData,
-                totalQuestions: finalQuestions.length,
-              }
-            : t
-        )
-      );
-      setSelectedTest((s) => ({
-        ...s,
-        ...updateData,
-        totalQuestions: finalQuestions.length,
-      }));
-
-      toast.success("Test updated successfully!");
-      setShowUpdateModal(false);
-    } catch (error) {
-      console.error("Error updating test:", error);
       toast.error("Failed to update test. Please try again.");
     } finally {
       setUpdatingTest(false);
@@ -458,15 +300,6 @@ export default function ViewTests() {
     setLoading(true);
     loadTests();
   };
-
-  const domains = [
-    { value: "aptitude", label: "Aptitude" },
-    { value: "technical", label: "Technical" },
-    { value: "soft-skills", label: "Soft Skills" },
-    { value: "domain-knowledge", label: "Domain Knowledge" },
-    { value: "behavioral", label: "Behavioral" },
-    { value: "language", label: "Language" },
-  ];
 
   if (loading) {
     return (
@@ -582,29 +415,40 @@ export default function ViewTests() {
               {selectedTest ? (
                 <div className="border border-gray-200 rounded-xl p-4">
                   <div className="flex flex-col py-2 gap-y-5">
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                        {selectedTest.testName}
-                      </h3>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600 flex-wrap gap-2">
-                        <span className="bg-sky-100 text-blue-800 px-3 py-1 rounded-full">
-                          {selectedTest.domain
-                            ? selectedTest.domain.charAt(0).toUpperCase() +
-                              selectedTest.domain.slice(1)
-                            : "No Domain"}
-                        </span>
-                        <span className="text-emerald-500 font-medium px-2 py-1 space-x-2 text-sm text-nowrap">
-                          {selectedTest.totalQuestions || 0} questions
-                        </span>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                          {selectedTest.testName}
+                        </h3>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600 flex-wrap gap-2">
+                          <span className="bg-sky-100 text-blue-800 px-3 py-1 rounded-full">
+                            {selectedTest.domain
+                              ? selectedTest.domain.charAt(0).toUpperCase() +
+                                selectedTest.domain.slice(1)
+                              : "No Domain"}
+                          </span>
+                          <span className="text-emerald-500 font-medium px-2 py-1 space-x-2 text-sm text-nowrap">
+                            {selectedTest.totalQuestions || 0} questions
+                          </span>
 
-                        {selectedTest.totalResponses > 0 && (
-                          <>
-                            <span className="text-emerald-500 font-medium px-2 py-1 space-x-2 text-sm text-nowrap">
-                              {selectedTest.totalResponses} responses
-                            </span>
-                          </>
-                        )}
+                          {selectedTest.totalResponses > 0 && (
+                            <>
+                              <span className="text-emerald-500 font-medium px-2 py-1 space-x-2 text-sm text-nowrap">
+                                {selectedTest.totalResponses} responses
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Export button moved to the right end */}
+                      <button
+                        onClick={exportTestWithSync}
+                        className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-emerald-700 hover:shadow-md transition-all"
+                      >
+                        <Download size={16} />
+                        <span>Export</span>
+                      </button>
                     </div>
                     <div className="flex flex-col items-center gap-3 text-sm">
                       {/* Reminder */}
@@ -615,21 +459,21 @@ export default function ViewTests() {
 
                       {/* Buttons */}
                       <div className="flex justify-center flex-wrap gap-2 text-sm">
-                        {/* Export */}
-                        <button
-                          onClick={exportTestWithSync}
-                          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-green-700 hover:shadow-md transition-all"
-                        >
-                          <Download size={16} />
-                          <span>Export</span>
-                        </button>
+                        {/* Sync Queue */}
 
+                        <button
+                          onClick={handleSyncQueue}
+                          className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-purple-700 hover:shadow-md transition-all"
+                        >
+                          <RefreshCcw size={16} />
+                          <span>Sync</span>
+                        </button>
                         {/* Publish / Unpublish / Copy Link */}
                         {selectedTest.status === "active" ? (
                           <>
                             <button
                               onClick={handleUnpublish}
-                              className="flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-yellow-600 hover:shadow-md transition-all"
+                              className="flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-amber-600 hover:shadow-md transition-all"
                             >
                               <Ban size={16} />
                               <span>Unpublish</span>
@@ -637,7 +481,7 @@ export default function ViewTests() {
 
                             <button
                               onClick={copyLink}
-                              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-blue-700 hover:shadow-md transition-all"
+                              className="flex items-center gap-2 bg-sky-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-sky-700 hover:shadow-md transition-all"
                             >
                               <Link2 size={16} />
                               <span>Copy Link</span>
@@ -646,7 +490,7 @@ export default function ViewTests() {
                         ) : (
                           <button
                             onClick={handlePublish}
-                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-blue-700 hover:shadow-md transition-all"
+                            className="flex items-center gap-2 bg-sky-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-sky-700 hover:shadow-md transition-all"
                           >
                             <Upload size={16} />
                             <span>Publish</span>
@@ -657,7 +501,7 @@ export default function ViewTests() {
                         {selectedTest.status !== "active" && (
                           <button
                             onClick={() => handleUpdateTest(selectedTest.id)}
-                            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-indigo-700 hover:shadow-md transition-all"
+                            className="flex items-center gap-2 bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-indigo-600 hover:shadow-md transition-all"
                           >
                             <Edit size={16} />
                             <span>Update Test</span>
@@ -667,7 +511,7 @@ export default function ViewTests() {
                         {/* Duplicate Test Button */}
                         <button
                           onClick={() => setShowDuplicateModal(true)}
-                          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-green-700 hover:shadow-md transition-all"
+                          className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-emerald-700 hover:shadow-md transition-all"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -689,19 +533,10 @@ export default function ViewTests() {
                         {/* Delete */}
                         <button
                           onClick={() => handleDeleteTest(selectedTest.id)}
-                          className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-rose-700 hover:shadow-md transition-all"
+                          className="flex items-center gap-2 bg-rose-500 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-rose-600 hover:shadow-md transition-all"
                         >
                           <Trash2 size={16} />
                           <span>Delete</span>
-                        </button>
-
-                        {/* Sync Queue */}
-                        <button
-                          onClick={handleSyncQueue}
-                          className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-purple-700 hover:shadow-md transition-all"
-                        >
-                          <RefreshCcw size={16} />
-                          <span>Sync Queue</span>
                         </button>
                       </div>
                     </div>
@@ -741,6 +576,39 @@ export default function ViewTests() {
                             {selectedTest.totalResponses || 0}
                           </span>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Password Card - ADD THIS */}
+                    <div className="bg-gray-50 p-4 rounded-lg flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <svg
+                          className="w-5 h-5 text-blue-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                          />
+                        </svg>
+                        Test Password
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 bg-white rounded border border-gray-300">
+                          <div className="font-mono text-lg font-bold text-gray-800 tracking-wide">
+                            {selectedTest.password || "No password set"}
+                          </div>
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            Required
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Students will need this password to start the test
+                        </p>
                       </div>
                     </div>
 
