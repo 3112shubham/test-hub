@@ -92,8 +92,8 @@ export default function ViewTests() {
 
     setLoading(true);
     try {
-      await handleSyncQueue(); // Sync first
-      exportTest(); // Then export
+      const test = await handleSyncQueue(); // Sync first
+      exportTest(test);
     } catch (error) {
       console.error("Error in export with sync:", error);
       toast.error("Error exporting test");
@@ -122,9 +122,9 @@ export default function ViewTests() {
     }
   };
 
-  const exportTest = () => {
-    if (!selectedTest) return;
-    exportTestToExcel(selectedTest);
+  const exportTest = (test) => {
+    if (!test) return;
+    exportTestToExcel(test);
     toast.success("Test exported successfully!");
   };
 
@@ -154,7 +154,7 @@ export default function ViewTests() {
         method: "POST",
       });
       const data = await res.json();
-
+      let updatedTest = null;
       if (res.ok) {
         toast.success(data.message || "Queue synced successfully!", {
           id: loadingToast,
@@ -163,7 +163,7 @@ export default function ViewTests() {
         // Update selectedTest with fresh data
         if (selectedTest) {
           const freshTests = await getUserTests(); // Or use the updated tests state
-          const updatedTest = freshTests.find((t) => t.id === selectedTest.id);
+          updatedTest = freshTests.find((t) => t.id === selectedTest.id);
           if (updatedTest) {
             setSelectedTest(updatedTest);
           }
@@ -176,6 +176,7 @@ export default function ViewTests() {
           }
         );
       }
+      return updatedTest;
     } catch (err) {
       console.error(err);
       toast.error("Error syncing queue: " + err.message);
