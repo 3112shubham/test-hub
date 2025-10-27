@@ -287,7 +287,8 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
             description={description}
             setDescription={setDescription}
             domains={domains}
-            password={setPassword}
+            password={password}
+            setPassword={setPassword}
           />
         )}
 

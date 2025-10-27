@@ -51,7 +51,10 @@ export default function TestRunner({ test }) {
 
   const validatePassword = () => {
     if (!test.password) return true; // No password required
-    if (testPassword === test.password) return true;
+    if (testPassword === test.password) {
+      setPasswordError("");
+      return true;
+    }
     setPasswordError("Incorrect password. Please check with your instructor.");
     return false;
   };
@@ -197,11 +200,14 @@ export default function TestRunner({ test }) {
     validateCustomFields();
   };
 
-  // You can simplify nextVal since isFormValid now handles password validation:
   const nextVal = () => {
     if (step === -1) {
-      if (!isFormValid()) {
-        // Mark all fields as touched to show errors
+      // Validate password first
+      if (test.password && !validatePassword()) {
+        return;
+      }
+      // Then validate custom fields
+      if (!validateCustomFields()) {
         const allFieldIds = customFields.map((f) => f.id || f.name);
         setTouchedFields(new Set(allFieldIds));
         return;
@@ -211,12 +217,14 @@ export default function TestRunner({ test }) {
       setStep(step + 1);
     }
   };
-  
-  // Update the isFormValid function to this:
+
+  // Fix the isFormValid function
   const isFormValid = () => {
     // Check password first
-    if (test.password && !validatePassword()) {
-      return false;
+    if (test.password) {
+      if (testPassword !== test.password) {
+        return false;
+      }
     }
 
     // Then check custom fields
@@ -272,6 +280,7 @@ export default function TestRunner({ test }) {
       setMessage("Failed to submit. Try again.");
     } finally {
       setLoading(false);
+      setTestPassword("")
     }
   };
 
@@ -871,7 +880,22 @@ export default function TestRunner({ test }) {
                             value={testPassword}
                             onChange={(e) => {
                               setTestPassword(e.target.value);
-                              setPasswordError("");
+                              // Clear error when user starts typing
+                              if (passwordError) {
+                                setPasswordError("");
+                              }
+                            }}
+                            onBlur={() => {
+                              // Validate only when user leaves the field
+                              if (
+                                test.password &&
+                                testPassword &&
+                                testPassword !== test.password
+                              ) {
+                                setPasswordError(
+                                  "Incorrect password. Please check with your instructor."
+                                );
+                              }
                             }}
                             className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                               passwordError
