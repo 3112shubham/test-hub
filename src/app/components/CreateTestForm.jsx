@@ -259,21 +259,23 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
   };
 
   return (
-    <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-8xl mx-auto border border-gray-100">
-      <ProgressHeader
-        questionsLength={questions.length}
-        progressPercentage={getProgressPercentage()}
-        questionTypeStats={getQuestionTypeStats()}
-        testName={testName}
-      />
+    <div className="bg-white rounded-2xl shadow-lg w-full max-w-8xl mx-auto border border-gray-100 h-full flex flex-col">
+      <div className="px-8 pt-8 bg-white">
+        <ProgressHeader
+          questionsLength={questions.length}
+          progressPercentage={getProgressPercentage()}
+          questionTypeStats={getQuestionTypeStats()}
+          testName={testName}
+        />
 
-      <NavigationTabs
-        activeSection={activeSection}
-        setActiveSection={setActiveSection}
-        questionsLength={questions.length}
-      />
+          <NavigationTabs
+            activeSection={activeSection}
+            setActiveSection={setActiveSection}
+            questionsLength={questions.length}
+          />
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="flex-1 space-y-6 px-8 pb-8 overflow-y-auto">
         {activeSection === "basic" && (
           <BasicInfoSection
             testName={testName}
