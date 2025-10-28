@@ -174,13 +174,13 @@ export default function TestInterface({
         key={qIndex}
         className={`p-4 lg:p-6 border-2 rounded-xl bg-white transition-all duration-200 ${
           isMarked
-            ? "border-yellow-400 bg-yellow-50 shadow-md"
-            : "border-gray-200 hover:border-gray-300"
+            ? "border-[#6BBF59] bg-[#6BBF59]/5 shadow-md"
+            : "border-blue-100 hover:border-blue-300"
         } ${!isSingleView ? "hover:shadow-lg" : ""}`}
       >
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start space-x-3 flex-1">
-            <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium shadow-sm">
+            <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-[#1D4ED8] to-[#00BCD4] text-white rounded-full flex items-center justify-center text-sm font-medium shadow-sm">
               {questionNumber}
             </span>
             <h4 className="text-lg font-semibold text-gray-800 leading-relaxed">
@@ -191,8 +191,8 @@ export default function TestInterface({
             onClick={() => toggleMarkQuestion(qIndex)}
             className={`flex-shrink-0 ml-4 p-2 rounded-lg transition-colors ${
               isMarked
-                ? "bg-yellow-100 text-yellow-600 hover:bg-yellow-200"
-                : "bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+                ? "bg-[#6BBF59]/10 text-[#6BBF59] hover:bg-[#6BBF59]/20"
+                : "bg-blue-100 text-blue-400 hover:bg-blue-200 hover:text-blue-600"
             }`}
             title={isMarked ? "Unmark question" : "Mark for review"}
           >
@@ -211,16 +211,16 @@ export default function TestInterface({
                   onClick={() => handleAnswer(qIndex, oi, "mcq")}
                   className={`text-left p-3 lg:p-4 rounded-xl border-2 transition-all duration-200 group ${
                     selected
-                      ? "border-blue-500 bg-gradient-to-r from-blue-50 to-blue-25 text-blue-800 shadow-sm"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-25 hover:shadow-md"
+                      ? "border-[#1D4ED8] bg-gradient-to-r from-[#1D4ED8]/10 to-[#00BCD4]/5 text-[#1D4ED8] shadow-sm"
+                      : "border-blue-100 bg-white text-gray-700 hover:border-[#00BCD4] hover:bg-blue-25 hover:shadow-md"
                   }`}
                 >
                   <div className="flex items-center">
                     <div
                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 transition-colors ${
                         selected
-                          ? "border-blue-500 bg-blue-500 shadow-inner"
-                          : "border-gray-400 group-hover:border-blue-400"
+                          ? "border-[#1D4ED8] bg-[#1D4ED8] shadow-inner"
+                          : "border-blue-300 group-hover:border-[#00BCD4]"
                       }`}
                     >
                       {selected && (
@@ -248,16 +248,16 @@ export default function TestInterface({
                   onClick={() => handleAnswer(qIndex, oi, "multiple")}
                   className={`text-left p-3 lg:p-4 rounded-xl border-2 transition-all duration-200 group ${
                     selected
-                      ? "border-green-500 bg-gradient-to-r from-green-50 to-green-25 text-green-800 shadow-sm"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-25 hover:shadow-md"
+                      ? "border-[#6BBF59] bg-gradient-to-r from-[#6BBF59]/10 to-[#6BBF59]/5 text-[#6BBF59] shadow-sm"
+                      : "border-blue-100 bg-white text-gray-700 hover:border-[#00BCD4] hover:bg-blue-25 hover:shadow-md"
                   }`}
                 >
                   <div className="flex items-center">
                     <div
                       className={`w-6 h-6 rounded border-2 flex items-center justify-center mr-3 transition-colors ${
                         selected
-                          ? "border-green-500 bg-green-500 shadow-inner"
-                          : "border-gray-400 group-hover:border-green-400"
+                          ? "border-[#6BBF59] bg-[#6BBF59] shadow-inner"
+                          : "border-blue-300 group-hover:border-[#00BCD4]"
                       }`}
                     >
                       {selected && <Check className="w-3 h-3 text-white" />}
@@ -269,7 +269,7 @@ export default function TestInterface({
                 </button>
               );
             })}
-            <div className="text-sm text-green-600 mt-2 font-medium">
+            <div className="text-sm text-[#6BBF59] mt-2 font-medium">
               <CheckCircle className="w-4 h-4 inline mr-1" />
               Select all that apply
             </div>
@@ -287,16 +287,16 @@ export default function TestInterface({
                   onClick={() => handleAnswer(qIndex, oi, "truefalse")}
                   className={`p-4 lg:p-6 rounded-xl border-2 text-center font-medium transition-all duration-200 group ${
                     selected
-                      ? "border-purple-500 bg-gradient-to-r from-purple-50 to-purple-25 text-purple-800 shadow-sm"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-purple-300 hover:bg-purple-25 hover:shadow-md"
+                      ? "border-[#00BCD4] bg-gradient-to-r from-[#00BCD4]/10 to-[#00BCD4]/5 text-[#00BCD4] shadow-sm"
+                      : "border-blue-100 bg-white text-gray-700 hover:border-[#00BCD4] hover:bg-blue-25 hover:shadow-md"
                   }`}
                 >
                   <div className="flex items-center justify-center">
                     <div
                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 transition-colors ${
                         selected
-                          ? "border-purple-500 bg-purple-500 shadow-inner"
-                          : "border-gray-400 group-hover:border-purple-400"
+                          ? "border-[#00BCD4] bg-[#00BCD4] shadow-inner"
+                          : "border-blue-300 group-hover:border-[#00BCD4]"
                       }`}
                     >
                       {selected && (
@@ -319,11 +319,11 @@ export default function TestInterface({
             <textarea
               value={currentAnswer || ""}
               onChange={(e) => handleAnswer(qIndex, e.target.value, "text")}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 resize-vertical bg-white hover:border-orange-300 focus:bg-orange-25"
+              className="w-full px-4 py-3 border-2 border-blue-100 rounded-xl focus:ring-2 focus:ring-[#00BCD4] focus:border-[#00BCD4] transition-all duration-200 resize-vertical bg-white hover:border-[#00BCD4] focus:bg-blue-25"
               rows={4}
               placeholder="Type your detailed answer here..."
             />
-            <div className="text-sm text-orange-600 mt-2 font-medium">
+            <div className="text-sm text-[#00BCD4] mt-2 font-medium">
               📝 Please provide a detailed answer
             </div>
           </div>
@@ -334,12 +334,12 @@ export default function TestInterface({
           <span
             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium shadow-sm ${
               question.type === "mcq"
-                ? "bg-blue-100 text-blue-800 border border-blue-200"
+                ? "bg-[#1D4ED8]/10 text-[#1D4ED8] border border-[#1D4ED8]/20"
                 : question.type === "multiple"
-                ? "bg-green-100 text-green-800 border border-green-200"
+                ? "bg-[#6BBF59]/10 text-[#6BBF59] border border-[#6BBF59]/20"
                 : question.type === "truefalse"
-                ? "bg-purple-100 text-purple-800 border border-purple-200"
-                : "bg-orange-100 text-orange-800 border border-orange-200"
+                ? "bg-[#00BCD4]/10 text-[#00BCD4] border border-[#00BCD4]/20"
+                : "bg-blue-100 text-blue-800 border border-blue-200"
             }`}
           >
             {question.type === "mcq" && "🔘 Single Choice"}
@@ -348,7 +348,7 @@ export default function TestInterface({
             {question.type === "text" && "📝 Text Answer"}
           </span>
           {isMarked && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200 shadow-sm">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#6BBF59]/10 text-[#6BBF59] border border-[#6BBF59]/20 shadow-sm">
               <Star className="w-3 h-3 fill-current mr-1" />
               Marked for Review
             </span>
@@ -373,12 +373,12 @@ export default function TestInterface({
       {/* Sidebar Navigation */}
       {step >= 0 && (
         <div
-          className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 bg-white border-r border-gray-200 shadow-sm flex flex-col transform transition-transform duration-300 ease-in-out ${
+          className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 bg-white border-r border-blue-100 shadow-sm flex flex-col transform transition-transform duration-300 ease-in-out ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
         >
           {/* Sidebar Header */}
-          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700">
+          <div className="p-6 border-b border-blue-100 bg-gradient-to-r from-[#1D4ED8] to-[#00BCD4]">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-white truncate">
@@ -396,18 +396,18 @@ export default function TestInterface({
           </div>
 
           {/* Progress Section */}
-          <div className="p-4 border-b border-gray-200 bg-white">
+          <div className="p-4 border-b border-blue-100 bg-white">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-gray-700">
                 Progress
               </span>
-              <span className="text-sm font-bold text-blue-600">
+              <span className="text-sm font-bold text-[#1D4ED8]">
                 {Math.round(progress)}%
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-blue-100 rounded-full h-2">
               <div
-                className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-500 shadow-sm"
+                className="bg-gradient-to-r from-[#1D4ED8] to-[#00BCD4] h-2 rounded-full transition-all duration-500 shadow-sm"
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
@@ -432,23 +432,23 @@ export default function TestInterface({
 
                   const statusConfig = {
                     answered: {
-                      bg: "bg-green-500",
-                      border: "border-green-600",
+                      bg: "bg-[#6BBF59]",
+                      border: "border-[#6BBF59]",
                       text: "text-white",
                     },
                     visited: {
-                      bg: "bg-rose-500",
-                      border: "border-rose-600",
+                      bg: "bg-[#00BCD4]",
+                      border: "border-[#00BCD4]",
                       text: "text-white",
                     },
                     "not-visited": {
-                      bg: "bg-blue-500",
-                      border: "border-blue-600",
+                      bg: "bg-[#1D4ED8]",
+                      border: "border-[#1D4ED8]",
                       text: "text-white",
                     },
                     marked: {
-                      bg: "bg-purple-500",
-                      border: "border-purple-600",
+                      bg: "bg-[#6BBF59]",
+                      border: "border-[#6BBF59]",
                       text: "text-white",
                     },
                   };
@@ -467,7 +467,7 @@ export default function TestInterface({
                         config.bg
                       } ${config.border} ${config.text} ${
                         isCurrent
-                          ? "ring-2 ring-offset-2 ring-blue-400 transform scale-110"
+                          ? "ring-2 ring-offset-2 ring-[#00BCD4] transform scale-110"
                           : ""
                       }`}
                       title={`Question ${qIndex + 1} - ${status.replace(
@@ -483,19 +483,19 @@ export default function TestInterface({
             </div>
 
             {/* Legend */}
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
               <h4 className="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wide">
                 Status Legend
               </h4>
               <div className="space-y-2">
                 {[
-                  { color: "bg-green-500 border-green-600", label: "Answered" },
-                  { color: "bg-rose-500 border-rose-600", label: "Visited" },
+                  { color: "bg-[#6BBF59] border-[#6BBF59]", label: "Answered" },
+                  { color: "bg-[#00BCD4] border-[#00BCD4]", label: "Visited" },
                   {
-                    color: "bg-blue-500 border-blue-600",
+                    color: "bg-[#1D4ED8] border-[#1D4ED8]",
                     label: "Not Visited",
                   },
-                  { color: "bg-purple-500 border-purple-600", label: "Marked" },
+                  { color: "bg-[#6BBF59] border-[#6BBF59]", label: "Marked" },
                 ].map((item, index) => (
                   <div key={index} className="flex items-center space-x-2">
                     <div
@@ -509,11 +509,11 @@ export default function TestInterface({
           </div>
 
           {/* Sidebar Footer */}
-          <div className="p-4 border-t border-gray-200 bg-white">
+          <div className="p-4 border-t border-blue-100 bg-white">
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full bg-gradient-to-r from-[#6BBF59] to-[#00BCD4] hover:from-[#6BBF59]/90 hover:to-[#00BCD4]/90 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
               {loading ? (
                 <>
@@ -535,13 +535,13 @@ export default function TestInterface({
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Header */}
         {step >= 0 && (
-          <div className="lg:hidden bg-white border-b border-gray-200 p-4">
+          <div className="lg:hidden bg-white border-b border-blue-100 p-4">
             <div className="flex items-center justify-between">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+                className="p-2 rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors"
               >
-                <Menu className="w-6 h-6 text-gray-600" />
+                <Menu className="w-6 h-6 text-[#1D4ED8]" />
               </button>
               <div className="flex-1 text-center">
                 <h2 className="text-lg font-bold text-gray-800 truncate">
@@ -560,13 +560,13 @@ export default function TestInterface({
                 <span className="text-xs font-medium text-gray-600">
                   Progress
                 </span>
-                <span className="text-xs font-bold text-blue-600">
+                <span className="text-xs font-bold text-[#1D4ED8]">
                   {Math.round(progress)}%
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-blue-100 rounded-full h-2">
                 <div
-                  className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-[#1D4ED8] to-[#00BCD4] h-2 rounded-full transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
@@ -576,16 +576,16 @@ export default function TestInterface({
 
         {/* Success Alert */}
         {showSuccessAlert && (
-          <div className="m-4 p-4 bg-green-50 border border-green-200 rounded-xl shadow-sm">
+          <div className="m-4 p-4 bg-[#6BBF59]/10 border border-[#6BBF59]/20 rounded-xl shadow-sm">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <CheckCircle className="h-5 w-5 text-green-400" />
+                <CheckCircle className="h-5 w-5 text-[#6BBF59]" />
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">
+                <h3 className="text-sm font-medium text-[#6BBF59]">
                   Test Submitted Successfully!
                 </h3>
-                <p className="text-sm text-green-600 mt-1">
+                <p className="text-sm text-[#6BBF59] mt-1">
                   Thank you for completing the test.
                 </p>
               </div>
@@ -604,7 +604,7 @@ export default function TestInterface({
                   </h3>
                   <button
                     onClick={() => setShowAllQuestions(false)}
-                    className="text-blue-600 hover:text-blue-800 font-medium flex items-center space-x-2"
+                    className="text-[#1D4ED8] hover:text-[#00BCD4] font-medium flex items-center space-x-2"
                   >
                     <ArrowLeft className="w-5 h-5" />
                     <span>Back to Single View</span>
@@ -627,7 +627,7 @@ export default function TestInterface({
                   <div className="flex items-center space-x-4">
                     <button
                       onClick={() => setShowAllQuestions(true)}
-                      className="text-blue-600 hover:text-blue-800 font-medium flex items-center space-x-2"
+                      className="text-[#1D4ED8] hover:text-[#00BCD4] font-medium flex items-center space-x-2"
                     >
                       <LayoutGrid className="w-5 h-5" />
                       <span className="hidden sm:inline">
@@ -639,11 +639,11 @@ export default function TestInterface({
 
                 {renderQuestion(questions[step], step, true)}
 
-                <div className="flex justify-between items-center pt-6 border-t border-gray-200">
+                <div className="flex justify-between items-center pt-6 border-t border-blue-100">
                   <button
                     onClick={prev}
                     disabled={step === 0 && customFields.length === 0}
-                    className="px-4 lg:px-6 py-3 border-2 border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    className="px-4 lg:px-6 py-3 border-2 border-blue-100 rounded-xl text-gray-700 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                   >
                     <ChevronLeft className="w-5 h-5" />
                     <span className="hidden sm:inline">Previous</span>
@@ -652,7 +652,7 @@ export default function TestInterface({
                   {step < questions.length - 1 ? (
                     <button
                       onClick={next}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 lg:px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center space-x-2"
+                      className="bg-gradient-to-r from-[#1D4ED8] to-[#00BCD4] hover:from-[#1D4ED8]/90 hover:to-[#00BCD4]/90 text-white px-4 lg:px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center space-x-2"
                     >
                       <span className="hidden sm:inline">Next Question</span>
                       <span className="sm:hidden">Next</span>
@@ -662,7 +662,7 @@ export default function TestInterface({
                     <button
                       onClick={handleSubmit}
                       disabled={loading}
-                      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 lg:px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                      className="bg-gradient-to-r from-[#6BBF59] to-[#00BCD4] hover:from-[#6BBF59]/90 hover:to-[#00BCD4]/90 text-white px-6 lg:px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
                       {loading ? (
                         <>
@@ -686,8 +686,8 @@ export default function TestInterface({
               <div
                 className={`mt-4 p-4 rounded-xl border-2 ${
                   message.includes("successfully")
-                    ? "bg-green-50 text-green-700 border-green-200"
-                    : "bg-rose-50 text-rose-700 border-rose-200"
+                    ? "bg-[#6BBF59]/10 text-[#6BBF59] border-[#6BBF59]/20"
+                    : "bg-[#1D4ED8]/10 text-[#1D4ED8] border-[#1D4ED8]/20"
                 }`}
               >
                 {message}

@@ -40,9 +40,16 @@ export default function Navbar() {
       <div
         onClick={() => router.push("/")}
         className="flex items-center gap-2 cursor-pointer"
-      >
+      > <Image
+          src="/logol.png"
+          alt="Logo"
+          width={40}
+          height={50}
+          className="rounded-lg hover:opacity-90 transition-opacity"
+          priority
+        />
         <Image
-          src="/logo.png"
+          src="/logot.png"
           alt="Logo"
           width={100}
           height={100}
