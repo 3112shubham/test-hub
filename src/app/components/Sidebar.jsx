@@ -11,11 +11,6 @@ export default function Sidebar({ setActiveForm, logout }) {
   return (
     <div className="w-64 bg-gradient-to-b from-white to-blue-50 shadow-lg shadow-blue-500/10 flex flex-col justify-between min-h-[90vh] sticky top-[10vh] rounded-2xl border border-blue-100">
       <div>
-        <div className="bg-gradient-to-r from-[#1D4ED8] to-[#00BCD4] py-6 rounded-t-2xl">
-          <h2 className="text-2xl font-bold text-center text-white">
-            Dashboard
-          </h2>
-        </div>
         <ul className="p-4 space-y-2">
           <li>
             <button
