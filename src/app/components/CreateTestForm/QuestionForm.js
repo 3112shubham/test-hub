@@ -202,7 +202,7 @@ export default function QuestionForm({
   };
 
   return (
-    <div className="p-6 border border-gray-200 rounded-xl ">
+    <div className="p-6 border border-gray-200 rounded-xl bg-white overflow-y-auto custom-scrollbar" style={{ maxHeight: 'fit-content' }}>
       {/* Question Type Navigation */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-3">

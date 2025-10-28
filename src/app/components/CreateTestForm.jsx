@@ -263,12 +263,6 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
   return (
     <div className="bg-white rounded-2xl shadow-lg w-full max-w-8xl mx-auto border border-gray-100 h-full flex flex-col">
       <div className="px-8 pt-8 bg-white">
-        <ProgressHeader
-          questionsLength={questions.length}
-          progressPercentage={getProgressPercentage()}
-          questionTypeStats={getQuestionTypeStats()}
-          testName={testName}
-        />
 
           <NavigationTabs
             activeSection={activeSection}
@@ -325,18 +319,7 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
             setTrueFalseAnswer={setTrueFalseAnswer}
           />
         )}
-
-        {(activeSection === "details" || activeSection === "questions") && (
-          <TestSummary
-            testName={testName}
-            domain={domain}
-            description={description}
-            domains={domains}
-            questions={questions}
-            questionTypeStats={getQuestionTypeStats()}
-          />
-        )}
-
+        
         <NavigationButtons
           activeSection={activeSection}
           setActiveSection={setActiveSection}
