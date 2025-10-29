@@ -1,22 +1,20 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import CreateTestForm from "../components/CreateTestForm";
 import TestDetailsForm from "../components/TestDetailsForm";
 import QuestionsForm from "../components/QuestionsForm";
 import ViewTests from "../components/ViewTests";
 
-export default function UserDashboard() {
+function UserPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeForm, setActiveForm] = useState("create-test");
 
-  // Update active form based on URL parameter
   useEffect(() => {
     const form = searchParams.get("form");
-    if (form) {
-      setActiveForm(form);
-    }
+    if (form) setActiveForm(form);
   }, [searchParams]);
 
   const renderActiveForm = () => {
@@ -36,12 +34,17 @@ export default function UserDashboard() {
 
   return (
     <div className="min-h-screen w-full">
-      {/* Main Content */}
       <div className="container mx-auto pt-8">
-        <div className="p-6 mt-8">
-          {renderActiveForm()}
-        </div>
+        <div className="p-6 mt-8">{renderActiveForm()}</div>
       </div>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <UserPageContent />
+    </Suspense>
   );
 }

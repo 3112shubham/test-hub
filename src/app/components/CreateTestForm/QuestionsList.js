@@ -2,27 +2,28 @@ export default function QuestionsList({
   questions,
   deleteQuestion,
   clearAllQuestions,
+  onSelectQuestion,
 }) {
   const getQuestionTypeBadge = (type) => {
     const typeConfig = {
       mcq: { 
-        label: "SC", 
+        label: "MCQ", 
         color: "bg-gradient-to-r from-[#1D4ED8] to-[#00BCD4] text-white",
         fullLabel: "Single Choice"
       },
       multiple: {
-        label: "MC",
-        color: "bg-gradient-to-r from-[#6BBF59] to-[#4CAF50] text-white",
+        label: "Multiple Response",
+        color: "bg-gradient-to-r from-green-700 to-[#4CAF50] text-white",
         fullLabel: "Multiple Choice"
       },
       truefalse: {
-        label: "TF",
-        color: "bg-gradient-to-r from-purple-500 to-purple-600 text-white",
+        label: "True / False",
+        color: "bg-gradient-to-r from-purple-500 to-purple-700 text-white",
         fullLabel: "True/False"
       },
       text: { 
-        label: "TA", 
-        color: "bg-gradient-to-r from-amber-500 to-amber-600 text-white",
+        label: "Short Answer", 
+        color: "bg-gradient-to-r from-amber-300 to-amber-600 text-white",
         fullLabel: "Text Answer"
       },
     };
@@ -133,7 +134,8 @@ export default function QuestionsList({
               {questions.map((q, index) => (
                 <div
                   key={index}
-                  className="border border-blue-100 rounded-lg p-3 hover:border-[#00BCD4] transition-all duration-200 bg-white hover:shadow-sm group"
+                  onClick={() => onSelectQuestion && onSelectQuestion(index)}
+                  className="border border-blue-100 rounded-lg p-3 hover:border-[#00BCD4] transition-all duration-200 bg-white hover:shadow-sm group cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-2">
                     {/* Left: Question Info */}
@@ -157,7 +159,7 @@ export default function QuestionsList({
                       {/* Quick Options Preview */}
                       {q.type !== "text" && q.options && q.options.length > 0 && (
                         <div className="flex items-center gap-1 mt-1 flex-wrap">
-                          {q.options.slice(0, 3).map((option, optIndex) => (
+                          {q.options.map((option, optIndex) => (
                             <span
                               key={optIndex}
                               className={`text-xs px-1.5 py-0.5 rounded border ${
@@ -170,18 +172,13 @@ export default function QuestionsList({
                               {optIndex + 1}
                             </span>
                           ))}
-                          {q.options.length > 3 && (
-                            <span className="text-xs text-gray-400">
-                              +{q.options.length - 3} more
-                            </span>
-                          )}
                         </div>
                       )}
                     </div>
 
                     {/* Right: Delete Button */}
                     <button
-                      onClick={() => deleteQuestion(index)}
+                      onClick={(e) => { e.stopPropagation(); deleteQuestion(index); }}
                       className="opacity-0 group-hover:opacity-100 p-1 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded transition-all duration-200 flex-shrink-0"
                       title="Delete question"
                     >

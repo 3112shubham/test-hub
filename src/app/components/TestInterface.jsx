@@ -174,7 +174,7 @@ export default function TestInterface({
         key={qIndex}
         className={`p-4 lg:p-6 border-2 rounded-xl bg-white transition-all duration-200 ${
           isMarked
-            ? "border-[#6BBF59] bg-[#6BBF59]/5 shadow-md"
+            ? "border-purple-600 bg-[#6BBF59]/5 shadow-md"
             : "border-blue-100 hover:border-blue-300"
         } ${!isSingleView ? "hover:shadow-lg" : ""}`}
       >
@@ -191,7 +191,7 @@ export default function TestInterface({
             onClick={() => toggleMarkQuestion(qIndex)}
             className={`flex-shrink-0 ml-4 p-2 rounded-lg transition-colors ${
               isMarked
-                ? "bg-[#6BBF59]/10 text-[#6BBF59] hover:bg-[#6BBF59]/20"
+                ? "bg-purple-100 text-purple-500 hover:bg-purple-300"
                 : "bg-blue-100 text-blue-400 hover:bg-blue-200 hover:text-blue-600"
             }`}
             title={isMarked ? "Unmark question" : "Mark for review"}
@@ -348,7 +348,7 @@ export default function TestInterface({
             {question.type === "text" && "📝 Text Answer"}
           </span>
           {isMarked && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#6BBF59]/10 text-[#6BBF59] border border-[#6BBF59]/20 shadow-sm">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-600 border border-purple-400 shadow-sm">
               <Star className="w-3 h-3 fill-current mr-1" />
               Marked for Review
             </span>
@@ -399,7 +399,7 @@ export default function TestInterface({
           <div className="p-4 border-b border-blue-100 bg-white">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-gray-700">
-                Progress
+                Question
               </span>
               <span className="text-sm font-bold text-[#1D4ED8]">
                 {Math.round(progress)}%
@@ -437,24 +437,31 @@ export default function TestInterface({
                       text: "text-white",
                     },
                     visited: {
-                      bg: "bg-[#00BCD4]",
-                      border: "border-[#00BCD4]",
+                      bg: "bg-red-600",
+                      border: "border-red-600",
                       text: "text-white",
                     },
                     "not-visited": {
-                      bg: "bg-[#1D4ED8]",
-                      border: "border-[#1D4ED8]",
-                      text: "text-white",
+                      bg: "bg-gray-300",
+                      border: "border-gray-300",
+                      text: "text-gray-800",
                     },
                     marked: {
-                      bg: "bg-[#6BBF59]",
-                      border: "border-[#6BBF59]",
+                      bg: "bg-purple-500",
+                      border: "border-purple-500",
                       text: "text-white",
                     },
                   };
 
-                  const config =
-                    statusConfig[status] || statusConfig["not-visited"];
+                  const ringByStatus = {
+                    answered: "ring-blue-400",
+                    visited: "ring-blue-400",
+                    "not-visited": "ring-blue-400",
+                    marked: "ring-blue-400",
+                  };
+
+                  const config = statusConfig[status] || statusConfig["not-visited"];
+                  const ringClass = isCurrent ? `${ringByStatus[status] || "ring-gray-400"} ring-2 ring-offset-2 transform scale-110` : "";
 
                   return (
                     <button
@@ -463,17 +470,8 @@ export default function TestInterface({
                         setStep(qIndex);
                         if (window.innerWidth < 1024) setSidebarOpen(false);
                       }}
-                      className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 ${
-                        config.bg
-                      } ${config.border} ${config.text} ${
-                        isCurrent
-                          ? "ring-2 ring-offset-2 ring-[#00BCD4] transform scale-110"
-                          : ""
-                      }`}
-                      title={`Question ${qIndex + 1} - ${status.replace(
-                        "-",
-                        " "
-                      )}`}
+                      className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 ${config.bg} ${config.border} ${config.text} ${ringClass}`}
+                      title={`Question ${qIndex + 1} - ${status.replace("-", " ")}`}
                     >
                       {qIndex + 1}
                     </button>
@@ -483,19 +481,16 @@ export default function TestInterface({
             </div>
 
             {/* Legend */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <h4 className="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wide">
                 Status Legend
               </h4>
               <div className="space-y-2">
                 {[
                   { color: "bg-[#6BBF59] border-[#6BBF59]", label: "Answered" },
-                  { color: "bg-[#00BCD4] border-[#00BCD4]", label: "Visited" },
-                  {
-                    color: "bg-[#1D4ED8] border-[#1D4ED8]",
-                    label: "Not Visited",
-                  },
-                  { color: "bg-[#6BBF59] border-[#6BBF59]", label: "Marked" },
+                  { color: "bg-red-600 border-red-600", label: "Visited" },
+                  { color: "bg-gray-300 border-gray-300", label: "Not Visited" },
+                  { color: "bg-purple-500 border-purple-500", label: "Marked" },
                 ].map((item, index) => (
                   <div key={index} className="flex items-center space-x-2">
                     <div
@@ -558,7 +553,7 @@ export default function TestInterface({
             <div className="mt-3">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs font-medium text-gray-600">
-                  Progress
+                  Question
                 </span>
                 <span className="text-xs font-bold text-[#1D4ED8]">
                   {Math.round(progress)}%

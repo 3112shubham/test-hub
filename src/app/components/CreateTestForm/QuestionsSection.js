@@ -20,6 +20,8 @@ export default function QuestionsSection({
   setTextAnswer,
   trueFalseAnswer,
   setTrueFalseAnswer,
+  editIndex = null,
+  onSelectQuestion,
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0 h-full">
@@ -60,6 +62,7 @@ export default function QuestionsSection({
             setTextAnswer={setTextAnswer}
             trueFalseAnswer={trueFalseAnswer}
             setTrueFalseAnswer={setTrueFalseAnswer}
+            isEditing={editIndex !== null}
           />
         </div>
       </div>
@@ -69,6 +72,7 @@ export default function QuestionsSection({
           questions={questions}
           deleteQuestion={deleteQuestion}
           clearAllQuestions={clearAllQuestions}
+          onSelectQuestion={onSelectQuestion}
         />
       </div>
     </div>
