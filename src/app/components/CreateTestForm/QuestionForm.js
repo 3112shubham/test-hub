@@ -15,6 +15,7 @@ export default function QuestionForm({
   setTextAnswer: externalSetTextAnswer,
   trueFalseAnswer: externalTrueFalseAnswer,
   setTrueFalseAnswer: externalSetTrueFalseAnswer,
+  isEditing = false,
 }) {
   // Internal state management if not controlled from parent
   const [internalQuestionType, setInternalQuestionType] = useState("mcq");
@@ -44,27 +45,40 @@ export default function QuestionForm({
   useEffect(() => {
     switch (questionType) {
       case "truefalse":
-        setOptions(["True", "False"]);
-        setCorrectOptions([]);
-        setTrueFalseAnswer(null);
+        // Only initialize if no options provided by parent
+        if (!options || options.length === 0) {
+          setOptions(["True", "False"]);
+        }
+        if (!correctOptions || correctOptions.length === 0) {
+          setCorrectOptions([]);
+          setTrueFalseAnswer(null);
+        }
         break;
       case "text":
-        setOptions([]);
-        setCorrectOptions([]);
-        setTextAnswer("");
+        if (!options || options.length === 0) {
+          setOptions([]);
+        }
+        if (!correctOptions || correctOptions.length === 0) {
+          setCorrectOptions([]);
+          setTextAnswer("");
+        }
         break;
       case "mcq":
       case "multiple":
         if (
+          !options ||
           options.length === 0 ||
           (options.length === 2 && options.every((opt) => opt === ""))
         ) {
           setOptions(["", ""]);
         }
-        setCorrectOptions([]);
+        if (!correctOptions || correctOptions.length === 0) {
+          setCorrectOptions([]);
+        }
         break;
     }
-  },[questionType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questionType]);
 
   const addOption = () => {
     if (questionType === "text" || questionType === "truefalse") return;
@@ -202,13 +216,14 @@ export default function QuestionForm({
   };
 
   return (
-    <div className="p-6 border border-gray-200 rounded-xl ">
+    
+    <div className="bg-white rounded-2xl border-2 border-blue-100 p-4 flex flex-col shadow-lg shadow-blue-500/5 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'fit-content' }}>
       {/* Question Type Navigation */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-3">
+      <div className="mb-6 ">
+        <label className="block text-lg font-bold text-gray-800 mb-3">
           Question Type
         </label>
-        <div className="flex space-x-1 p-1 bg-white rounded-lg border border-gray-200">
+        <div className="flex space-x-1 p-1 bg-white rounded-lg border border-blue-200">
           {questionTypes.map((type) => (
             <button
               key={type.id}
@@ -219,7 +234,7 @@ export default function QuestionForm({
               }}
               className={`flex-1 flex items-center justify-center space-x-2 py-2 px-3 rounded-md text-sm font-medium transition-all ${
                 questionType === type.id
-                  ? "bg-blue-100 text-blue-700 border border-blue-200"
+                  ? "bg-blue-100 text-blue-500 border border-blue-200"
                   : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
               }`}
             >
@@ -243,7 +258,7 @@ export default function QuestionForm({
           <textarea
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            className="w-full border border-blue-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             rows="3"
             placeholder="Enter your question here..."
           />
@@ -266,7 +281,7 @@ export default function QuestionForm({
                 <div key={index} className="flex items-center space-x-3">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
-                      isOptionCorrect(index) ? "bg-green-500" : "bg-gray-400"
+                      isOptionCorrect(index) ? "bg-green-500" : "bg-blue-300"
                     }`}
                   >
                     {index + 1}
@@ -275,7 +290,7 @@ export default function QuestionForm({
                     type="text"
                     value={opt}
                     onChange={(e) => updateOption(index, e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 border border-blue-100 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder={`Option ${index + 1}...`}
                   />
                   <div className="flex items-center space-x-2">
@@ -364,7 +379,7 @@ export default function QuestionForm({
                   className={`p-4 border-2 rounded-lg text-center font-medium transition-all ${
                     isOptionCorrect(index)
                       ? "border-green-500 bg-green-50 text-green-700"
-                      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                      : "border-gray-300 bg-white text-gray-700 hover:text-blue-500 hover:border-blue-200"
                   }`}
                 >
                   {option}
@@ -383,7 +398,7 @@ export default function QuestionForm({
             <textarea
               value={textAnswer}
               onChange={(e) => handleTextAnswerChange(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full border border-blue-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               rows="4"
               placeholder="Enter the expected answer for this question..."
             />
@@ -406,9 +421,9 @@ export default function QuestionForm({
           type="button"
           onClick={handleAddQuestionWithType}
           disabled={!canAddQuestion()}
-          className="bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="bg-blue-500 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-blue-200 disabled:cursor-not-allowed"
         >
-          + Add Question
+          {isEditing ? "Save Changes" : "+ Add Question"}
         </button>
       </div>
     </div>

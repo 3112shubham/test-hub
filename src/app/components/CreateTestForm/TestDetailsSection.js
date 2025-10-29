@@ -28,93 +28,120 @@ export default function TestDetailsSection({
     <div className="space-y-6">
       {/* Response Structure Definition Section */}
       <div className="pt-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
-          Response Structure Definition
-        </h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Define custom fields that candidates will need to fill out before
-          starting the test.
-        </p>
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 bg-gradient-to-r from-[#1D4ED8] to-[#00BCD4] rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">
+                Student Registration Fields
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Define custom fields that students will fill out before starting the test
+              </p>
+            </div>
+          </div>
+        </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {customFields.map((field, index) => (
             <div
               key={field.id}
-              className="border border-gray-200 rounded-lg p-4 "
+              className="border border-blue-100 rounded-lg p-3 bg-white hover:shadow-sm transition-all duration-150"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                {/* Field Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Field Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={field.name}
-                    onChange={(e) => {
-                      const updatedFields = [...customFields];
-                      updatedFields[index].name = e.target.value;
-                      setCustomFields(updatedFields);
-                    }}
-                    className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      field.id === "default-email" ? "bg-gray-100" : ""
-                    }`}
-                    placeholder="e.g., Roll Number, Department"
-                    required
-                    disabled={field.id === "default-email"} // email name locked
-                  />
+              <div className="flex items-center gap-3 justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-2.5 h-2.5 rounded-full ${
+                    field.id === "default-email" ? "bg-[#6BBF59]" : "bg-gradient-to-r from-[#1D4ED8] to-[#00BCD4]"
+                  }`} />
+                  <div className="text-sm font-semibold text-gray-800">
+                    {field.id === "default-email" ? "Email (Default)" : `Field ${index + 1}`}
+                  </div>
                 </div>
 
-                {/* Field Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Field Type *
-                  </label>
-                  <select
-                    value={field.type}
-                    onChange={(e) => {
-                      const updatedFields = [...customFields];
-                      updatedFields[index].type = e.target.value;
-                      if (e.target.value === "value") {
-                        updatedFields[index].options = [];
-                      } else if (
-                        e.target.value === "dropdown" &&
-                        !updatedFields[index].options
-                      ) {
-                        updatedFields[index].options = [""];
-                      }
-                      setCustomFields(updatedFields);
-                    }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    disabled={field.id === "default-email"} // can't change type for email
-                  >
-                    <option value="value">Text Input</option>
-                    <option value="dropdown">Dropdown</option>
-                  </select>
+                <div className="flex items-center gap-2">
+                  {(field.id !== "default-email" || customFields.length > 1) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updatedFields = customFields.filter((_, i) => i !== index);
+                        setCustomFields(updatedFields);
+                      }}
+                      className="text-rose-600 hover:text-rose-800 text-sm font-medium px-2 py-1 rounded"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Dropdown Options */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 items-center">
+                <input
+                  type="text"
+                  value={field.name}
+                  onChange={(e) => {
+                    const updatedFields = [...customFields];
+                    updatedFields[index].name = e.target.value;
+                    setCustomFields(updatedFields);
+                  }}
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#00BCD4] transition-colors ${
+                    field.id === "default-email" ? "bg-gray-50 text-gray-600 cursor-not-allowed" : "bg-white"
+                  }`}
+                  placeholder="Field name"
+                  disabled={field.id === "default-email"}
+                />
+
+                <select
+                  value={field.type}
+                  onChange={(e) => {
+                    const updatedFields = [...customFields];
+                    updatedFields[index].type = e.target.value;
+                    if (e.target.value === "value") updatedFields[index].options = [];
+                    if (e.target.value === "dropdown" && !updatedFields[index].options) updatedFields[index].options = [""];
+                    setCustomFields(updatedFields);
+                  }}
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#00BCD4] transition-colors ${
+                    field.id === "default-email" ? "bg-gray-50 cursor-not-allowed" : "bg-white"
+                  }`}
+                  disabled={field.id === "default-email"}
+                >
+                  <option value="value">Text input</option>
+                  <option value="dropdown">Dropdown</option>
+                </select>
+
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={field.required}
+                    onChange={(e) => {
+                      const updatedFields = [...customFields];
+                      updatedFields[index].required = e.target.checked;
+                      setCustomFields(updatedFields);
+                    }}
+                    className="w-4 h-4 text-[#6BBF59]"
+                  />
+                  <span>Required</span>
+                </label>
+              </div>
+
               {field.type === "dropdown" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dropdown Options *
-                  </label>
-                  <div className="space-y-2">
+                <div className="mt-3">
+                  <div className="flex flex-wrap gap-2">
                     {field.options.map((option, optionIndex) => (
-                      <div key={optionIndex} className="flex gap-2">
+                      <div key={optionIndex} className="flex items-center gap-2">
                         <input
                           type="text"
                           value={option}
                           onChange={(e) => {
                             const updatedFields = [...customFields];
-                            updatedFields[index].options[optionIndex] =
-                              e.target.value;
+                            updatedFields[index].options[optionIndex] = e.target.value;
                             setCustomFields(updatedFields);
                           }}
-                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="border rounded-md px-2 py-1 text-sm"
                           placeholder={`Option ${optionIndex + 1}`}
-                          required
                         />
                         <button
                           type="button"
@@ -123,9 +150,9 @@ export default function TestDetailsSection({
                             updatedFields[index].options.splice(optionIndex, 1);
                             setCustomFields(updatedFields);
                           }}
-                          className="px-3 py-2 text-rose-600 hover:text-rose-800 font-medium"
+                          className="text-rose-600 px-2"
                         >
-                          Remove
+                          ✕
                         </button>
                       </div>
                     ))}
@@ -136,102 +163,77 @@ export default function TestDetailsSection({
                         updatedFields[index].options.push("");
                         setCustomFields(updatedFields);
                       }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                      className="text-sm text-[#1D4ED8] px-3 py-1 border rounded-md"
                     >
-                      Add Option
+                      + Add
                     </button>
                   </div>
                 </div>
               )}
-
-              {/* Required + Remove */}
-              <div className="flex justify-between items-center mt-4">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id={`required-${field.id}`}
-                    checked={field.required}
-                    onChange={(e) => {
-                      const updatedFields = [...customFields];
-                      updatedFields[index].required = e.target.checked;
-                      setCustomFields(updatedFields);
-                    }}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label
-                    htmlFor={`required-${field.id}`}
-                    className="ml-2 text-sm text-gray-700"
-                  >
-                    Required field
-                  </label>
-                </div>
-
-                {/* Show Remove for email only if there's more than one field */}
-                {(field.id !== "default-email" || customFields.length > 1) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const updatedFields = customFields.filter(
-                        (_, i) => i !== index
-                      );
-                      setCustomFields(updatedFields);
-                    }}
-                    className="px-3 py-1 text-rose-600 hover:text-rose-800 font-medium"
-                  >
-                    Remove Field
-                  </button>
-                )}
-              </div>
             </div>
           ))}
 
-          {/* Add Custom Field */}
-          <button
-            type="button"
-            onClick={() => {
-              const newField = {
-                id: Date.now().toString(),
-                name: "",
-                type: "value",
-                required: false,
-                options: [],
-              };
-              setCustomFields([...customFields, newField]);
-            }}
-            className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 hover:border-gray-400 transition-colors duration-200"
-          >
-            <div className="flex items-center justify-center gap-2 text-gray-600">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
+          {/* Compact Add Custom Field Button */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                const newField = {
+                  id: Date.now().toString(),
+                  name: "",
+                  type: "value",
+                  required: false,
+                  options: [],
+                };
+                setCustomFields([...customFields, newField]);
+              }}
+              className="inline-flex items-center gap-2 px-3 py-1 border border-blue-100 rounded-md text-sm text-[#1D4ED8] hover:bg-blue-50 hover:border-[#00BCD4] transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Add Custom Field
-            </div>
-          </button>
+              <span className="font-medium">Add field</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Test Instructions */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Test Instructions
-        </label>
+      <div className="border-t border-blue-100 pt-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-amber-600 rounded-lg flex items-center justify-center">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Test Instructions</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Provide clear instructions for students before they start the test
+            </p>
+          </div>
+        </div>
+        
         <textarea
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-          rows="4"
-          placeholder="Enter test instructions for candidates..."
+          className="w-full border-2 border-blue-100 rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#00BCD4] focus:border-[#00BCD4] transition-all duration-300 bg-white hover:border-blue-200 focus:bg-blue-25 placeholder-gray-400 resize-vertical"
+          rows="6"
+          placeholder="Enter detailed test instructions for students...
+• Time limits
+• Question types
+• Navigation rules
+• Submission guidelines
+• Any special instructions..."
         />
+        <div className="flex items-center gap-2 mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+          <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <p className="text-sm text-amber-700">
+            These instructions will be shown to students before they begin the test
+          </p>
+        </div>
       </div>
     </div>
   );

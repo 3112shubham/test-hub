@@ -28,6 +28,7 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
   const [options, setOptions] = useState(["", ""]);
   const [correctOptions, setCorrectOptions] = useState([]);
   const [questions, setQuestions] = useState([]);
+  const [editIndex, setEditIndex] = useState(null);
   const [questionType, setQuestionType] = useState("mcq");
   const [textAnswer, setTextAnswer] = useState("");
   const [trueFalseAnswer, setTrueFalseAnswer] = useState(null);
@@ -99,6 +100,28 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
   }, [questionType]);
 
   const handleAddQuestion = (questionData = null) => {
+    // If editIndex is set, update existing question
+    if (editIndex !== null && editIndex >= 0 && editIndex < questions.length) {
+      const updated = [...questions];
+      const payload =
+        questionData || {
+          question,
+          options: questionType === "text" ? [] : options.filter((opt) => opt.trim() !== ""),
+          correctOptions,
+          type: questionType,
+          textAnswer: questionType === "text" ? textAnswer : undefined,
+          trueFalseAnswer: questionType === "truefalse" ? trueFalseAnswer : undefined,
+        };
+
+      updated[editIndex] = { ...updated[editIndex], ...payload };
+      setQuestions(updated);
+      localStorage.setItem("questions", JSON.stringify(updated));
+      resetQuestionForm();
+      setEditIndex(null);
+      toast.success("Question updated ✅");
+      return;
+    }
+
     const newQuestion = questionData
       ? { ...questionData, id: Date.now().toString() }
       : {
@@ -129,6 +152,7 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
     setTextAnswer("");
     setTrueFalseAnswer(null);
     setQuestionType("mcq");
+    setEditIndex(null);
   };
 
   const deleteQuestion = (index) => {
@@ -137,6 +161,21 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
     localStorage.setItem("questions", JSON.stringify(updatedQuestions));
 
     toast.success("Question deleted 🗑️");
+  };
+
+  const handleSelectQuestion = (index) => {
+    const q = questions[index];
+    if (!q) return;
+    // populate form fields
+    setQuestion(q.question || "");
+    setQuestionType(q.type || "mcq");
+    setOptions(q.options && q.options.length ? q.options : q.type === "truefalse" ? ["True", "False"] : ["", ""]);
+    setCorrectOptions(q.correctOptions || []);
+    setTextAnswer(q.textAnswer || "");
+    setTrueFalseAnswer(typeof q.trueFalseAnswer === "boolean" ? q.trueFalseAnswer : null);
+    setEditIndex(index);
+    // switch to questions section if needed
+    setActiveSection("questions");
   };
 
   const resetForm = () => {
@@ -158,10 +197,6 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isFormValid()) {
-      toast.error("Please complete all required fields before submitting!");
-      return;
-    }
 
     const user = auth.currentUser;
     if (!user) {
@@ -263,12 +298,6 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
   return (
     <div className="bg-white rounded-2xl shadow-lg w-full max-w-8xl mx-auto border border-gray-100 h-full flex flex-col">
       <div className="px-8 pt-8 bg-white">
-        <ProgressHeader
-          questionsLength={questions.length}
-          progressPercentage={getProgressPercentage()}
-          questionTypeStats={getQuestionTypeStats()}
-          testName={testName}
-        />
 
           <NavigationTabs
             activeSection={activeSection}
@@ -323,20 +352,11 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
             setTextAnswer={setTextAnswer}
             trueFalseAnswer={trueFalseAnswer}
             setTrueFalseAnswer={setTrueFalseAnswer}
+            editIndex={editIndex}
+            onSelectQuestion={handleSelectQuestion}
           />
         )}
-
-        {(activeSection === "details" || activeSection === "questions") && (
-          <TestSummary
-            testName={testName}
-            domain={domain}
-            description={description}
-            domains={domains}
-            questions={questions}
-            questionTypeStats={getQuestionTypeStats()}
-          />
-        )}
-
+        
         <NavigationButtons
           activeSection={activeSection}
           setActiveSection={setActiveSection}

@@ -1,22 +1,21 @@
 "use client";
-import { useState } from "react";
-import { signOut } from "firebase/auth";
-import { auth } from "../../lib/firebaseConfig";
-import { useRouter } from "next/navigation";
-import Sidebar from "../components/Sidebar";
+
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import CreateTestForm from "../components/CreateTestForm";
 import TestDetailsForm from "../components/TestDetailsForm";
 import QuestionsForm from "../components/QuestionsForm";
 import ViewTests from "../components/ViewTests";
 
-export default function UserDashboard() {
+function UserPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeForm, setActiveForm] = useState("create-test");
 
-  const logout = async () => {
-    await signOut(auth);
-    router.push("/");
-  };
+  useEffect(() => {
+    const form = searchParams.get("form");
+    if (form) setActiveForm(form);
+  }, [searchParams]);
 
   const renderActiveForm = () => {
     switch (activeForm) {
@@ -34,22 +33,18 @@ export default function UserDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 w-full">
-      {/* Spacer for navbar */}
-      <div className="h-[10vh] w-full"></div>
-
-      {/* Simple row layout */}
-      <div className="flex w-full">
-        {/* Sidebar - Fixed width */}
-        <div className="w-64 flex-shrink-0">
-          <Sidebar setActiveForm={setActiveForm} logout={logout} />
-        </div>
-
-        {/* Main Content - Takes remaining space */}
-        <div className="flex-1 min-w-0">
-          <div className="px-6">{renderActiveForm()}</div>
-        </div>
+    <div className="min-h-screen w-full">
+      <div className="container mx-auto pt-8">
+        <div className="p-6 mt-8">{renderActiveForm()}</div>
       </div>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <UserPageContent />
+    </Suspense>
   );
 }

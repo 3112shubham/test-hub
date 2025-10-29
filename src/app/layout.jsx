@@ -10,8 +10,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="bg-gray-100 min-h-screen w-full">
+      <body className=" min-h-screen w-full">
         <Navbar />
+        {/* spacer equal to navbar height so page content starts below the fixed navbar */}
+        <div className="h-auto" aria-hidden="true" />
         {children}
 
         <Toaster
