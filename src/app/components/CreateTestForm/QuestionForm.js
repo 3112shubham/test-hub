@@ -217,7 +217,7 @@ export default function QuestionForm({
 
   return (
     
-    <div className="bg-white rounded-2xl border-2 border-blue-100 p-4 flex flex-col shadow-lg shadow-blue-500/5 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'fit-content' }}>
+    <div className="bg-white rounded-2xl border-2 border-blue-100 p-4 flex flex-col shadow-lg shadow-blue-500/5 overflow-y-auto custom-scrollbar" style={{ maxHeight: '100%' }}>
       {/* Question Type Navigation */}
       <div className="mb-6 ">
         <label className="block text-lg font-bold text-gray-800 mb-3">
@@ -410,21 +410,30 @@ export default function QuestionForm({
       </div>
 
       {/* Footer */}
-      <div className="flex justify-between items-center mt-6">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-6">
         <div className="text-sm text-gray-600">
           <div>
             Type: {questionTypes.find((t) => t.id === questionType)?.name}
           </div>
           <div>Correct Answer: {getAnswerPreview()}</div>
         </div>
-        <button
-          type="button"
-          onClick={handleAddQuestionWithType}
-          disabled={!canAddQuestion()}
-          className="bg-blue-500 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-blue-200 disabled:cursor-not-allowed"
-        >
-          {isEditing ? "Save Changes" : "+ Add Question"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleAddQuestionWithType}
+            disabled={!canAddQuestion()}
+            className="bg-blue-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-blue-200 disabled:cursor-not-allowed"
+          >
+            {isEditing ? "Save Changes" : "+ Add Question"}
+          </button>
+          <button
+            type="button"
+            onClick={resetForm}
+            className="bg-white border border-gray-200 text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Reset
+          </button>
+        </div>
       </div>
     </div>
   );

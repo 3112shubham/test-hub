@@ -70,7 +70,7 @@ export default function QuestionsList({
   };
 
   return (
-    <div className="bg-white rounded-2xl border-2 border-blue-100 p-4 flex flex-col shadow-lg shadow-blue-500/5" style={{ height: 'calc(100vh)' }}>
+    <div className="bg-white rounded-2xl border-2 border-blue-100 p-4 flex flex-col shadow-lg shadow-blue-500/5">
       
       {/* Fixed Summary Section */}
       <div className="flex-shrink-0 mb-4">
@@ -88,6 +88,7 @@ export default function QuestionsList({
           </div>
           {questions.length > 0 && (
             <button
+              type="button"
               onClick={clearAllQuestions}
               className="text-rose-600 hover:text-rose-800 text-sm font-medium py-1 px-2 hover:bg-rose-50 rounded-lg transition-colors flex items-center gap-1"
             >
@@ -120,8 +121,8 @@ export default function QuestionsList({
         </div>
       </div>
 
-      {/* Scrollable Questions List */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+  {/* Scrollable Questions List */}
+  <div className="flex-1 max-h-[80vh] overflow-y-scroll">
         {questions.length === 0 ? (
           <div className="text-center py-8 text-gray-500 h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border-2 border-dashed border-blue-200">
             <div className="text-4xl mb-2">📝</div>
@@ -129,7 +130,7 @@ export default function QuestionsList({
             <p className="text-xs text-gray-500">Add questions to get started</p>
           </div>
         ) : (
-          <div className="h-full overflow-y-auto pr-1 custom-scrollbar">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <div className="space-y-2">
               {questions.map((q, index) => (
                 <div
@@ -178,6 +179,7 @@ export default function QuestionsList({
 
                     {/* Right: Delete Button */}
                     <button
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); deleteQuestion(index); }}
                       className="opacity-0 group-hover:opacity-100 p-1 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded transition-all duration-200 flex-shrink-0"
                       title="Delete question"

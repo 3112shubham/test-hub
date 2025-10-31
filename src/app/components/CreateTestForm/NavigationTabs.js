@@ -10,7 +10,7 @@ export default function NavigationTabs({
   ];
 
   return (
-    <div className="flex space-x-4 mb-8 border-b border-gray-200">
+    <div className="flex space-x-4 border-b border-gray-200">
       {sections.map((section) => (
         <button
           key={section.id}

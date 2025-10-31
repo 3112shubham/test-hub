@@ -24,7 +24,7 @@ export default function QuestionsSection({
   onSelectQuestion,
 }) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0 h-full">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;
@@ -46,28 +46,29 @@ export default function QuestionsSection({
           scrollbar-color: #ccc #f1f1f1;
         }
       `}</style>
-      <div className="lg:col-span-1 min-h-0 h-full">
-        <div className="h-full">
+
+      <div className="lg:col-span-2 flex flex-col min-h-0">
+        <div className="flex-1 min-h-0 overflow-hidden">
           <QuestionForm
-            question={question}
-            setQuestion={setQuestion}
-            options={options}
-            setOptions={setOptions}
-            correctOptions={correctOptions}
-            setCorrectOptions={setCorrectOptions}
-            handleAddQuestion={handleAddQuestion}
-            questionType={questionType}
-            setQuestionType={setQuestionType}
-            textAnswer={textAnswer}
-            setTextAnswer={setTextAnswer}
-            trueFalseAnswer={trueFalseAnswer}
-            setTrueFalseAnswer={setTrueFalseAnswer}
-            isEditing={editIndex !== null}
+          question={question}
+          setQuestion={setQuestion}
+          options={options}
+          setOptions={setOptions}
+          correctOptions={correctOptions}
+          setCorrectOptions={setCorrectOptions}
+          handleAddQuestion={handleAddQuestion}
+          questionType={questionType}
+          setQuestionType={setQuestionType}
+          textAnswer={textAnswer}
+          setTextAnswer={setTextAnswer}
+          trueFalseAnswer={trueFalseAnswer}
+          setTrueFalseAnswer={setTrueFalseAnswer}
+          isEditing={editIndex !== null}
           />
         </div>
       </div>
 
-      <div className="lg:col-span-1 h-full">
+      <div className="lg:col-span-1 flex flex-col">
         <QuestionsList
           questions={questions}
           deleteQuestion={deleteQuestion}

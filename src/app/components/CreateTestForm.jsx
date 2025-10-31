@@ -297,7 +297,7 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
 
   return (
     <div className="bg-white rounded-2xl shadow-lg w-full max-w-8xl mx-auto border border-gray-100 h-full flex flex-col">
-      <div className="px-8 pt-8 bg-white">
+      <div className="px-8 pt-8 pb-2 bg-white">
 
           <NavigationTabs
             activeSection={activeSection}
@@ -305,7 +305,7 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
             questionsLength={questions.length}
           />
       </div>
-
+       
       <form onSubmit={handleSubmit} className="flex-1 space-y-6 px-8 pb-8 overflow-y-auto">
         {activeSection === "basic" && (
           <BasicInfoSection
@@ -357,22 +357,25 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
           />
         )}
         
-        <NavigationButtons
-          activeSection={activeSection}
-          setActiveSection={setActiveSection}
-          isFormValid={isFormValid()}
-          isSubmitting={isSubmitting}
-          questionsLength={questions.length}
-          resetForm={resetForm}
-          hasData={
-            testName ||
-            domain ||
-            instructions ||
-            customFields.length > 0 ||
-            questions.length > 0
-          }
-        />
+       
       </form>
+      <div className="px-8 z-10 bg-transparent">
+          <NavigationButtons
+            activeSection={activeSection}
+            setActiveSection={setActiveSection}
+            isFormValid={isFormValid()}
+            isSubmitting={isSubmitting}
+            questionsLength={questions.length}
+            resetForm={resetForm}
+            hasData={
+              testName ||
+              domain ||
+              instructions ||
+              customFields.length > 0 ||
+              questions.length > 0
+            }
+          />
+        </div>
     </div>
   );
 }
