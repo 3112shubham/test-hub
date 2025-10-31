@@ -358,8 +358,7 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
         )}
         
        
-      </form>
-      <div className="px-8 z-10 bg-transparent">
+        <div className="px-8 z-10 bg-transparent">
           <NavigationButtons
             activeSection={activeSection}
             setActiveSection={setActiveSection}
@@ -376,6 +375,7 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
             }
           />
         </div>
+      </form>
     </div>
   );
 }
