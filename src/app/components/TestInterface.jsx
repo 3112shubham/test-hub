@@ -54,12 +54,13 @@ export default function TestInterface({
       const next = [...prev];
       switch (questionType) {
         case "multiple":
-          const currentAnswers = next[qIndex] || [];
-          if (currentAnswers.includes(value)) {
-            next[qIndex] = currentAnswers.filter((item) => item !== value);
-          } else {
-            next[qIndex] = [...currentAnswers, value];
-          }
+            // ensure currentAnswers is an array (defensive: localStorage may have corrupted types)
+            const currentAnswers = Array.isArray(next[qIndex]) ? next[qIndex] : [];
+            if (currentAnswers.includes(value)) {
+              next[qIndex] = currentAnswers.filter((item) => item !== value);
+            } else {
+              next[qIndex] = [...currentAnswers, value];
+            }
           break;
         case "text":
           next[qIndex] = value;
@@ -241,7 +242,7 @@ export default function TestInterface({
         {question.type === "multiple" && (
           <div className="grid grid-cols-1 gap-3 ml-0 lg:ml-11">
             {question.options.map((opt, oi) => {
-              const selected = currentAnswer?.includes(oi);
+              const selected = Array.isArray(currentAnswer) ? currentAnswer.includes(oi) : false;
               return (
                 <button
                   key={oi}
