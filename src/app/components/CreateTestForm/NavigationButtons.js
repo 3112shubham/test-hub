@@ -10,7 +10,7 @@ export default function NavigationButtons({
   hasData,
 }) {
   return (
-    <div className="flex justify-between pt-6">
+    <div className="flex justify-between py-6 ">
       <div className="flex space-x-3">
         {activeSection !== "basic" && (
           <button

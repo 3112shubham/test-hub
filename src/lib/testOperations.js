@@ -248,3 +248,19 @@ export const deleteTest = async (testId) => {
     throw error;
   }
 };
+
+// Clear all responses for a test (reset responses array and totalResponses)
+export const clearTestResponses = async (testId) => {
+  try {
+    if (!testId) throw new Error("Invalid testId");
+    const testRef = doc(db, "tests", testId);
+    await updateDoc(testRef, {
+      responses: [],
+      totalResponses: 0,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error clearing test responses:", error);
+    throw error;
+  }
+};

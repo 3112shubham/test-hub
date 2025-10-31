@@ -6,6 +6,7 @@ import {
   publishTest,
   unpublishTest,
   updateTest,
+  clearTestResponses,
 } from "../../lib/testOperations";
 import DuplicateTest from "./DuplicateTest";
 import CreateTestForm from "./CreateTestForm";
@@ -531,7 +532,23 @@ export default function ViewTests() {
                           </button>
                         )}
                         <button
-                          onClick={handleSyncQueue}
+                          onClick={async () => {
+                            if (!selectedTest) return;
+                            if (!confirm('Are you sure you want to clear all responses for this test? This action cannot be undone.')) return;
+                            try {
+                              setLoading(true);
+                              await clearTestResponses(selectedTest.id);
+                              // Update local state
+                              setSelectedTest((s) => ({ ...s, responses: [], totalResponses: 0 }));
+                              setTests((prev) => prev.map((t) => (t.id === selectedTest.id ? { ...t, responses: [], totalResponses: 0 } : t)));
+                              toast.success('Responses cleared for this test');
+                            } catch (err) {
+                              console.error('Failed to clear responses', err);
+                              toast.error('Failed to clear responses');
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
                           className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-rose-700 hover:shadow-md transition-all"
                         >
                           <Trash2 size={16} />
