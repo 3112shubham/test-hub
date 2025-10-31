@@ -3,7 +3,7 @@ import Navbar from "../app/components/Navbar";
 import { Toaster } from "react-hot-toast";
 
 export const metadata = {
-  title: "Test Forge",
+  title: "TESTNEX",
   description: "Next.js + Firebase Auth Role Routing",
 };
 

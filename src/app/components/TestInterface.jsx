@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   Star,
   ChevronLeft,
@@ -34,6 +35,8 @@ export default function TestInterface({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submittedAt, setSubmittedAt] = useState(null);
 
   // Close sidebar when step changes on mobile
   useEffect(() => {
@@ -41,6 +44,20 @@ export default function TestInterface({
       setSidebarOpen(false);
     }
   }, [step]);
+
+  // check if this test was already submitted by this user on this browser
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem(`test_submitted_${test.id}`);
+      if (s) {
+        const parsed = JSON.parse(s);
+        setSubmitted(true);
+        setSubmittedAt(parsed.submittedAt || null);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [test.id]);
 
   // Mark question as visited when step changes
   useEffect(() => {
@@ -105,13 +122,15 @@ export default function TestInterface({
     const answersArr = answers.map((ans, i) => ({
       questionIndex: i,
       answer: ans,
-      questionType: questions[i].type,
+      // defensive: questions[i] may be undefined if saved answers are out of sync
+      questionType: questions?.[i]?.type ?? null,
     }));
 
     return [{ customArr, answersArr, meta: { testName: test.testName } }];
   };
 
   const handleSubmit = async () => {
+    // show loader / overlay immediately
     setLoading(true);
     setMessage("");
 
@@ -135,18 +154,33 @@ export default function TestInterface({
 
       if (!res.ok) throw new Error("Submission failed");
 
+      // persist submission locally so returning users see the submitted state
+      const stored = {
+        submittedAt: new Date().toISOString(),
+        payload,
+      };
+      try {
+        localStorage.setItem(`test_submitted_${test.id}`, JSON.stringify(stored));
+      } catch (e) {
+        console.warn("Failed to persist submission locally", e);
+      }
+
       setShowSuccessAlert(true);
       setMessage("Test submitted successfully!");
-
+      setSubmitted(true);
+      setSubmittedAt(stored.submittedAt);
+      // keep loader briefly to show transition, then hide
       setTimeout(() => {
-        onTestComplete();
         setShowSuccessAlert(false);
         setMessage("");
-      }, 2000);
+        setLoading(false);
+      }, 1200);
+      // NOTE: we do NOT call onTestComplete automatically because we want
+      // to preserve the stored submission locally and show the submitted UI.
+      // The parent can still call onTestComplete if it wants to clear state.
     } catch (err) {
       console.error("Submission error:", err);
       setMessage("Failed to submit. Try again.");
-    } finally {
       setLoading(false);
     }
   };
@@ -363,6 +397,30 @@ export default function TestInterface({
 
   return (
     <>
+      {/* Global overlay shown while submitting */}
+      {loading && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-white/60 backdrop-blur-sm">
+          <div className="p-6 rounded-xl bg-white/90 shadow-lg flex flex-col items-center gap-3">
+            <Loader2 className="animate-spin h-8 w-8 text-[#1D4ED8]" />
+            <div className="text-lg font-semibold">Submitting your test…</div>
+            <div className="text-sm text-gray-600">Please wait while we save your responses.</div>
+          </div>
+        </div>
+      )}
+
+      {/* If already submitted, show a dedicated submitted screen */}
+      {submitted && !loading && (
+        <div className="min-h-screen w-full flex items-center justify-center">
+          <div className="max-w-2xl w-full p-8 bg-white rounded-2xl shadow-lg text-center">
+            <CheckCircle className="mx-auto text-[#6BBF59] w-12 h-12" />
+            <h2 className="text-2xl font-bold mt-4">Test Submitted</h2>
+            <p className="text-gray-600 mt-2">Your responses were submitted successfully.</p>
+            {submittedAt && (
+              <p className="text-sm text-gray-500 mt-2">Submitted at: {new Date(submittedAt).toLocaleString()}</p>
+            )}
+          </div>
+        </div>
+      )}
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
@@ -372,29 +430,43 @@ export default function TestInterface({
       )}
 
       {/* Sidebar Navigation */}
-      {step >= 0 && (
+      {step >= 0 && !submitted && (
         <div
           className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 bg-white border-r border-blue-100 shadow-sm flex flex-col transform transition-transform duration-300 ease-in-out ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
         >
           {/* Sidebar Header */}
-          <div className="p-6 border-b border-blue-100 bg-gradient-to-r from-[#1D4ED8] to-[#00BCD4]">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-white truncate">
-                  {test.testName}
-                </h2>
-                <p className="text-blue-100 text-sm mt-1">Question Navigator</p>
-              </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="lg:hidden text-white p-2 hover:bg-blue-500 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
+<div className="p-4 pb-3 border-b border-blue-200 bg-gradient-to-r from-[#00B5E2] to-[#2563EB]">
+  <div className="flex items-center justify-between">
+
+    {/* Logo */}
+    <Image 
+      src="/icon1.png"
+      alt="Logo"
+      width={120}
+      height={120}
+      className="hidden lg:block object-contain mb-4"
+    />
+
+    {/* Title */}
+    <div className="ml-3">
+      <h2 className="text-xl font-semibold text-white leading-tight">
+        {test.testName}
+      </h2>
+      <p className="text-white/80 text-sm">Question Navigator</p>
+    </div>
+
+    {/* Close button (only on mobile) */}
+    <button
+      onClick={() => setSidebarOpen(false)}
+      className="lg:hidden text-white p-2 rounded-lg hover:bg-white/20 transition"
+    >
+      <X className="w-5 h-5" />
+    </button>
+  </div>
+</div>
+
 
           {/* Progress Section */}
           <div className="p-4 border-b border-blue-100 bg-white">
@@ -530,7 +602,7 @@ export default function TestInterface({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Header */}
-        {step >= 0 && (
+        {step >= 0 && !submitted && (
           <div className="lg:hidden bg-white border-b border-blue-100 p-4">
             <div className="flex items-center justify-between">
               <button
@@ -547,7 +619,14 @@ export default function TestInterface({
                   Question {step + 1} of {questions.length}
                 </p>
               </div>
-              <div className="w-8"></div>
+              <div className="flex items-center justify-center w-19">
+                <Image 
+                  src="/icon.png"
+                  alt="Logo"
+                  width={65}
+                  height={65}
+                />
+              </div>
             </div>
 
             {/* Mobile Progress Bar */}
