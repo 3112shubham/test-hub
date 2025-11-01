@@ -29,15 +29,31 @@ export default function Page() {
     };
     updateLoadingTime();
 
-    const load = async () => {
-      setLoading(true);
+    const loadWithRetry = async (retryCount = 0) => {
+      const maxRetries = 2;
+      const timeout = 45000; // 45 seconds timeout
+
       try {
-        // Add timeout to getTestById
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Request timed out after 30 seconds')), 30000)
+          setTimeout(() => reject(new Error(`Request timed out after ${timeout/1000} seconds`)), timeout)
         );
         const dataPromise = getTestById(id);
         const data = await Promise.race([dataPromise, timeoutPromise]);
+        return data;
+      } catch (err) {
+        if (retryCount < maxRetries) {
+          // Wait 2 seconds before retrying
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return loadWithRetry(retryCount + 1);
+        }
+        throw err;
+      }
+    };
+
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await loadWithRetry();
         if (!mounted) return;
         if (!data || data.status !== "active") {
           setTest(null);
@@ -104,9 +120,38 @@ export default function Page() {
 
   if (error) {
     return (
-      <div className="p-8">
-        <h2 className="text-xl font-semibold text-red-600">Error loading test</h2>
-        <p className="text-gray-600">{error}</p>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
+          <h2 className="text-2xl font-semibold text-red-600 mb-4">Error Loading Test</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          
+          {error.includes("timeout") && (
+            <>
+              <p className="text-gray-600 mb-4">
+                This could be due to:
+                <ul className="list-disc ml-6 mt-2 space-y-1">
+                  <li>Slow internet connection</li>
+                  <li>Server is temporarily busy</li>
+                  <li>Large test data</li>
+                </ul>
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Try Again
+                </button>
+                <button
+                  onClick={() => router.push('/')}
+                  className="w-full py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Go Back
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     );
   }
