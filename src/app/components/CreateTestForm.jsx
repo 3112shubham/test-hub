@@ -8,6 +8,7 @@ import BasicInfoSection from "./CreateTestForm/BasicInfoSection";
 import TestDetailsSection from "./CreateTestForm/TestDetailsSection";
 import QuestionsSection from "./CreateTestForm/QuestionsSection";
 import ProgressHeader from "./CreateTestForm/ProgressHeader";
+import ImportSection from "./CreateTestForm/ImportSection";
 import NavigationTabs from "./CreateTestForm/NavigationTabs";
 import TestSummary from "./CreateTestForm/TestSummary";
 import NavigationButtons from "./CreateTestForm/NavigationButtons";
@@ -356,8 +357,11 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
             onSelectQuestion={handleSelectQuestion}
           />
         )}
+
+        {activeSection === "import" && (
+          <ImportSection />
+        )}
         
-       
         <div className="px-8 z-10 bg-transparent">
           <NavigationButtons
             activeSection={activeSection}

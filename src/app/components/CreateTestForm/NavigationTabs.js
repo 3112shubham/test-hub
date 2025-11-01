@@ -7,6 +7,7 @@ export default function NavigationTabs({
     { id: "basic", label: "📝 Basic Information" },
     { id: "details", label: "⚙️ Test Details" },
     { id: "questions", label: `❓ Questions (${questionsLength})` },
+    { id: "import", label: "📥 Import & Generate" },
   ];
 
   return (
