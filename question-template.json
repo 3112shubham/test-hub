@@ -1,0 +1,40 @@
+[
+  {
+    "question": "What is the capital of France?",
+    "options": [
+      "London",
+      "Berlin",
+      "Paris",
+      "Madrid"
+    ],
+    "correctOptions": [
+      2
+    ],
+    "type": "mcq"
+  },
+  {
+    "question": "Which of the following are programming languages? (Select all that apply)",
+    "options": [
+      "HTML",
+      "CSS",
+      "JavaScript",
+      "Python",
+      "JPEG"
+    ],
+    "correctOptions": [
+      2,
+      3
+    ],
+    "type": "multiple"
+  },
+  {
+    "question": "The Earth is round.",
+    "type": "truefalse",
+    "trueFalseAnswer": true
+  },
+  {
+    "question": "Explain the concept of recursion in programming.",
+    "type": "text",
+    "textAnswer": "Recursion is a programming technique where a function calls itself to solve a problem by breaking it down into smaller, similar subproblems."
+  }
+]

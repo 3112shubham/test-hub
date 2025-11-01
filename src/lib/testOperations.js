@@ -180,67 +180,14 @@ export const getUserTestsSimple = async () => {
 
 // Get a single test by ID
 export const getTestById = async (testId) => {
-  const MAX_RETRIES = 3;
-  const TIMEOUT = 15000; // 15 seconds timeout
-  
-  const fetchWithTimeout = async (retry = 0) => {
-    try {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error(`Timeout after ${TIMEOUT}ms`)), TIMEOUT)
-      );
-      
-      const docRef = doc(db, "tests", testId);
-      const fetchPromise = getDoc(docRef);
-      
-      const docSnap = await Promise.race([fetchPromise, timeoutPromise]);
-      
-      if (docSnap.exists()) {
-        // Cache the result for 5 minutes
-        try {
-          const cacheData = { 
-            data: docSnap.data(),
-            timestamp: Date.now(),
-            id: docSnap.id
-          };
-          localStorage.setItem(`test_cache_${testId}`, JSON.stringify(cacheData));
-        } catch (e) {
-          console.warn('Failed to cache test data:', e);
-        }
-        
-        return { id: docSnap.id, ...docSnap.data() };
-      } else {
-        throw new Error("Test not found");
-      }
-    } catch (error) {
-      console.error(`Attempt ${retry + 1}/${MAX_RETRIES} failed:`, error);
-      
-      if (retry < MAX_RETRIES - 1) {
-        // Exponential backoff: 1s, 2s, 4s
-        const backoffDelay = Math.pow(2, retry) * 1000;
-        await new Promise(resolve => setTimeout(resolve, backoffDelay));
-        return fetchWithTimeout(retry + 1);
-      }
-      
-      // On final retry, check cache before giving up
-      try {
-        const cached = localStorage.getItem(`test_cache_${testId}`);
-        if (cached) {
-          const { data, timestamp, id } = JSON.parse(cached);
-          // Use cache if it's less than 5 minutes old
-          if (Date.now() - timestamp < 5 * 60 * 1000) {
-            console.log('Using cached test data');
-            return { id, ...data };
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to check cache:', e);
-      }
-      
-      throw error;
-    }
-  };
-  
-  return fetchWithTimeout();
+  const docRef = doc(db, "tests", testId);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() };
+  } else {
+    throw new Error("Test not found");
+  }
 };
 
 // Add a response to a test
