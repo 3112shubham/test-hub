@@ -212,16 +212,39 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
         return acc;
       }, {});
 
+      // Clean questions array to remove undefined values
+      const cleanQuestions = questions.map(q => {
+        const cleaned = {
+          id: q.id,
+          question: q.question,
+          options: q.options,
+          correctOptions: q.correctOptions,
+          type: q.type,
+        };
+        
+        // Only include textAnswer if it exists
+        if (q.textAnswer !== undefined) {
+          cleaned.textAnswer = q.textAnswer;
+        }
+        
+        // Only include trueFalseAnswer if it exists
+        if (q.trueFalseAnswer !== undefined) {
+          cleaned.trueFalseAnswer = q.trueFalseAnswer;
+        }
+        
+        return cleaned;
+      });
+
       const testData = {
         testName,
         domain,
-        description,
-        instructions,
-        password,
+        ...(description && { description }),
+        ...(instructions && { instructions }),
+        ...(password && { password }),
         customFields: customFields.filter(
           (f) => f.name && f.name.trim() !== ""
         ),
-        questions,
+        questions: cleanQuestions,
         totalQuestions: questions.length,
         questionTypes: questionStats
       };
@@ -281,6 +304,43 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
       }
     });
     return basicValid && questionsValid;
+  };
+
+  const importQuestions = (questionsArray) => {
+    if (!Array.isArray(questionsArray)) return;
+    const mapped = questionsArray.map((q) => {
+      const questionType = q.type || (q.trueFalseAnswer !== undefined ? "truefalse" : q.textAnswer ? "text" : "mcq");
+      
+      let correctOptions = Array.isArray(q.correctOptions) ? q.correctOptions : [];
+      let options = Array.isArray(q.options) ? q.options : [];
+      
+      // For True/False questions, set correctOptions based on trueFalseAnswer
+      if (questionType === "truefalse") {
+        options = ["True", "False"];
+        if (q.trueFalseAnswer === true) {
+          correctOptions = [0]; // True is index 0
+        } else if (q.trueFalseAnswer === false) {
+          correctOptions = [1]; // False is index 1
+        }
+      }
+      
+      return {
+        id: Date.now().toString() + Math.random().toString(36).slice(2, 8),
+        question: q.question || q.prompt || "",
+        options,
+        correctOptions,
+        type: questionType,
+        textAnswer: q.textAnswer,
+        trueFalseAnswer: q.trueFalseAnswer,
+      };
+    });
+
+    const updatedQuestions = [...questions, ...mapped];
+    setQuestions(updatedQuestions);
+    localStorage.setItem("questions", JSON.stringify(updatedQuestions));
+    toast.success(`Imported ${mapped.length} questions ✅`);
+    // jump to questions section so user can review
+    setActiveSection("questions");
   };
 
   const getProgressPercentage = () => {
@@ -359,7 +419,7 @@ export default function CreateTestForm({ initialData = null, onSubmit, isSubmitt
         )}
 
         {activeSection === "import" && (
-          <ImportSection />
+          <ImportSection importQuestions={importQuestions} />
         )}
         
         <div className="px-8 z-10 bg-transparent">

@@ -1,5 +1,6 @@
 import "./globals.css";
 import Navbar from "../app/components/Navbar";
+import ErrorBoundary from "../app/components/ErrorBoundary";
 import { Toaster } from "react-hot-toast";
 
 export const metadata = {
@@ -10,11 +11,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className=" min-h-screen w-full">
+      <body className=" min-h-screen w-full" suppressHydrationWarning={true}>
         <Navbar />
         {/* spacer equal to navbar height so page content starts below the fixed navbar */}
         <div className="h-auto" aria-hidden="true" />
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
 
         <Toaster
           position="top-center"
