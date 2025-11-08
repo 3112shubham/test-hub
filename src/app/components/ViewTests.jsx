@@ -11,6 +11,7 @@ import {
 import DuplicateTest from "./DuplicateTest";
 import CreateTestForm from "./CreateTestForm";
 import { exportTestToExcel } from "@/utils/ExportToExcel";
+import { exportTestToWord } from "@/utils/ExportToWord";
 import {
   Download,
   Upload,
@@ -21,6 +22,7 @@ import {
   Edit,
   X,
   Delete,
+  FileText,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -126,7 +128,13 @@ export default function ViewTests() {
   const exportTest = (test) => {
     if (!test) return;
     exportTestToExcel(test);
-    toast.success("Test exported successfully!");
+    toast.success("Test exported to Excel successfully!");
+  };
+
+  const exportTestToWordDoc = (test, showAnswers = false) => {
+    if (!test) return;
+    exportTestToWord(test, showAnswers);
+    toast.success(showAnswers ? "Answer key exported successfully!" : "Question paper exported successfully!");
   };
 
   const handlePublish = async () => {
@@ -446,10 +454,12 @@ export default function ViewTests() {
                       <button
                         onClick={exportTestWithSync}
                         className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-emerald-700 hover:shadow-md transition-all"
+                        title="Export to Excel"
                       >
                         <Download size={16} />
-                        <span>Export</span>
+                        <span>Export Responses</span>
                       </button>
+                      
                        {/* Delete */}
                         <button
                           onClick={() => handleDeleteTest(selectedTest.id)}
@@ -555,7 +565,22 @@ export default function ViewTests() {
                           <span>Clear Responses</span>
                         </button>
                        
-
+                        <button
+                        onClick={() => exportTestToWordDoc(selectedTest, false)}
+                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-blue-700 hover:shadow-md transition-all"
+                        title="Export to Word without answers"
+                      >
+                        <FileText size={16} />
+                        <span>Question Paper</span>
+                      </button>
+                      <button
+                        onClick={() => exportTestToWordDoc(selectedTest, true)}
+                        className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-green-700 hover:shadow-md transition-all"
+                        title="Export to Word with answers"
+                      >
+                        <FileText size={16} />
+                        <span>Answer Key</span>
+                      </button>
                        
                       </div>
                        {/* Duplicate Test Button */}
