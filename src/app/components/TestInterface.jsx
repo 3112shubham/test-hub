@@ -38,6 +38,13 @@ export default function TestInterface({
   const [submitted, setSubmitted] = useState(false);
   const [submittedAt, setSubmittedAt] = useState(null);
 
+  // Use the same storage prefix as TestRunner so we read the same saved
+  // customResponses for this test. Falls back to 'global' when id is absent.
+  const storagePrefix =
+    typeof window !== "undefined"
+      ? `testRunner_${test?.id || test?._id || "global"}`
+      : "testRunner_global";
+
   // Close sidebar when step changes on mobile
   useEffect(() => {
     if (window.innerWidth < 1024) {
@@ -116,7 +123,7 @@ export default function TestInterface({
 
   const buildResponsesArray = () => {
     const customArr = Object.entries(
-      JSON.parse(localStorage.getItem("testRunner_customResponses") || "{}")
+      JSON.parse(localStorage.getItem(`${storagePrefix}_customResponses`) || "{}")
     ).map(([key, value]) => ({ key, value }));
 
     const answersArr = answers.map((ans, i) => ({

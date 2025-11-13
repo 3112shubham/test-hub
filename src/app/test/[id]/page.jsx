@@ -165,5 +165,8 @@ export default function Page() {
     );
   }
 
-  return <TestRunner test={test} />;
+  // Force remount TestRunner when the route id changes so its internal state
+  // resets for each new test. This prevents carrying over previous run state
+  // (like signed-in/step) when the user opens a different test link.
+  return <TestRunner test={test} key={id} />;
 }

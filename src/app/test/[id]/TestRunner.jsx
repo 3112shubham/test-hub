@@ -7,10 +7,17 @@ export default function TestRunner({ test }) {
   const customFields = test.customFields || [];
   const questions = test.questions || [];
 
+  // Use a storage prefix scoped to the test so different tests don't share
+  // the same localStorage keys. Fall back to 'global' if no id is available.
+  const storagePrefix =
+    typeof window !== "undefined"
+      ? `testRunner_${test?.id || test?._id || "global"}`
+      : "testRunner_global";
+
   // Initialize state from localStorage
   const [step, setStep] = useState(() => {
     if (typeof window === "undefined") return customFields.length > 0 ? -1 : 0;
-    const saved = localStorage.getItem("testRunner_step");
+    const saved = localStorage.getItem(`${storagePrefix}_step`);
     return saved ? parseInt(saved) : customFields.length > 0 ? -1 : 0;
   });
 
@@ -22,7 +29,7 @@ export default function TestRunner({ test }) {
       });
       return init;
     }
-    const saved = localStorage.getItem("testRunner_customResponses");
+    const saved = localStorage.getItem(`${storagePrefix}_customResponses`);
     return saved
       ? JSON.parse(saved)
       : (() => {
@@ -42,7 +49,7 @@ export default function TestRunner({ test }) {
         return null;
       });
     }
-    const saved = localStorage.getItem("testRunner_answers");
+    const saved = localStorage.getItem(`${storagePrefix}_answers`);
     return saved
       ? JSON.parse(saved)
       : questions.map((q) => {
@@ -55,42 +62,42 @@ export default function TestRunner({ test }) {
   const [testPassword, setTestPassword] = useState("");
   const [visitedQuestions, setVisitedQuestions] = useState(() => {
     if (typeof window === "undefined") return new Set();
-    const saved = localStorage.getItem("testRunner_visitedQuestions");
+    const saved = localStorage.getItem(`${storagePrefix}_visitedQuestions`);
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
   const [markedQuestions, setMarkedQuestions] = useState(() => {
     if (typeof window === "undefined") return new Set();
-    const saved = localStorage.getItem("testRunner_markedQuestions");
+    const saved = localStorage.getItem(`${storagePrefix}_markedQuestions`);
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
   // Save to localStorage whenever state changes
   useEffect(() => {
-    localStorage.setItem("testRunner_step", step.toString());
+    localStorage.setItem(`${storagePrefix}_step`, step.toString());
   }, [step]);
 
   useEffect(() => {
     localStorage.setItem(
-      "testRunner_customResponses",
+      `${storagePrefix}_customResponses`,
       JSON.stringify(customResponses)
     );
   }, [customResponses]);
 
   useEffect(() => {
-    localStorage.setItem("testRunner_answers", JSON.stringify(answers));
+    localStorage.setItem(`${storagePrefix}_answers`, JSON.stringify(answers));
   }, [answers]);
 
   useEffect(() => {
     localStorage.setItem(
-      "testRunner_visitedQuestions",
+      `${storagePrefix}_visitedQuestions`,
       JSON.stringify([...visitedQuestions])
     );
   }, [visitedQuestions]);
 
   useEffect(() => {
     localStorage.setItem(
-      "testRunner_markedQuestions",
+      `${storagePrefix}_markedQuestions`,
       JSON.stringify([...markedQuestions])
     );
   }, [markedQuestions]);
@@ -101,11 +108,11 @@ export default function TestRunner({ test }) {
 
   const handleTestComplete = () => {
     // Clear localStorage on test completion
-    localStorage.removeItem("testRunner_step");
-    localStorage.removeItem("testRunner_customResponses");
-    localStorage.removeItem("testRunner_answers");
-    localStorage.removeItem("testRunner_visitedQuestions");
-    localStorage.removeItem("testRunner_markedQuestions");
+    localStorage.removeItem(`${storagePrefix}_step`);
+    localStorage.removeItem(`${storagePrefix}_customResponses`);
+    localStorage.removeItem(`${storagePrefix}_answers`);
+    localStorage.removeItem(`${storagePrefix}_visitedQuestions`);
+    localStorage.removeItem(`${storagePrefix}_markedQuestions`);
 
     // Reset all state to initial values
     setCustomResponses(() => {
@@ -129,6 +136,13 @@ export default function TestRunner({ test }) {
   };
 
   const resetForm = () => {
+    // Remove saved state for this test and reset in-memory state
+    localStorage.removeItem(`${storagePrefix}_step`);
+    localStorage.removeItem(`${storagePrefix}_customResponses`);
+    localStorage.removeItem(`${storagePrefix}_answers`);
+    localStorage.removeItem(`${storagePrefix}_visitedQuestions`);
+    localStorage.removeItem(`${storagePrefix}_markedQuestions`);
+
     setStep(customFields.length > 0 ? -1 : 0);
     setCustomResponses(() => {
       const init = {};
