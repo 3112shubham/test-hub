@@ -680,7 +680,7 @@ export default function ViewTests() {
                             </svg>
                             Student Registration Fields
                           </h4>
-                          <div className="space-y-2 max-h-40 pr-2">
+                          <div className="space-y-2 max-h-50 pr-2 flex-1 overflow-y-scroll">
                             {selectedTest.customFields.map(
                               (field, index) =>
                                 field.name &&

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "autoprefixer": "^10.4.21",
+    "axios": "^1.13.2",
     "docx": "^9.5.1",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",

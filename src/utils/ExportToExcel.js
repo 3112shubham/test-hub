@@ -1,13 +1,82 @@
 // utils/exportToExcel.js
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
+import { db } from "../lib/firebaseConfig";
+import { collection, getDocs, getDoc, doc } from "firebase/firestore";
+
+/**
+ * Fetches responses from both sources:
+ * 1. Direct responses array in test document (legacy)
+ * 2. Batch responses from responseBatches subcollection (new)
+ * @param {string} testId - The test document ID
+ * @param {Array} legacyResponses - Responses from test.responses array (if exists)
+ * @returns {Promise<Array>} Combined responses from both sources
+ */
+const fetchAllResponses = async (testId, legacyResponses = []) => {
+  let allResponses = [];
+
+  // 1. First, add legacy responses if they exist
+  if (Array.isArray(legacyResponses) && legacyResponses.length > 0) {
+    console.log(`Fetched ${legacyResponses.length} responses from legacy array`);
+    allResponses = [...legacyResponses];
+  }
+
+  // 2. Then, fetch from new batch subcollection
+  try {
+    const responseBatchesRef = collection(db, "tests", testId, "responseBatches");
+    const batchesSnapshot = await getDocs(responseBatchesRef);
+
+    if (!batchesSnapshot.empty) {
+      console.log(`Found ${batchesSnapshot.size} batch documents`);
+
+      // Sort batches by batch number to maintain order
+      const sortedBatches = batchesSnapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          data: doc.data(),
+        }))
+        .sort((a, b) => {
+          const numA = parseInt(a.id.replace("batch_", "")) || 0;
+          const numB = parseInt(b.id.replace("batch_", "")) || 0;
+          return numA - numB;
+        });
+
+      // Extract responses from each batch
+      sortedBatches.forEach((batch) => {
+        if (batch.data.responses && Array.isArray(batch.data.responses)) {
+          console.log(`  Batch ${batch.id}: ${batch.data.responses.length} responses`);
+          allResponses.push(...batch.data.responses);
+        }
+      });
+
+      console.log(`Total responses from batches: ${batchesSnapshot.docs.reduce((sum, doc) => sum + (doc.data().responses?.length || 0), 0)}`);
+    }
+  } catch (error) {
+    console.warn("Error fetching from responseBatches subcollection:", error);
+    // Continue with legacy responses only if batch fetch fails
+  }
+
+  return allResponses;
+};
 
 /**
  * Exports test responses to Excel - maps custom field keys to actual names
+ * Fetches responses from both legacy array and new batch subcollection
  * @param {Object} test - The test object with responses
  */
 export const exportTestToExcel = async (test) => {
   if (!test) return;
+
+  // Fetch responses from both sources (legacy array + new batches)
+  const responses = await fetchAllResponses(test.id || test._id, test.responses);
+
+  if (!responses || responses.length === 0) {
+    console.warn("No responses found in either source (legacy array or batch subcollection)");
+    alert("No responses found to export.");
+    return;
+  }
+
+  console.log(`Total responses to export: ${responses.length}`);
 
   const workbook = new ExcelJS.Workbook();
 
@@ -56,7 +125,7 @@ export const exportTestToExcel = async (test) => {
   responsesSheet.columns = responseColumns;
 
   // Process responses
-  (test.responses || []).forEach((response, responseIndex) => {
+  (responses || []).forEach((response, responseIndex) => {
     const rowData = {
       responseId: response.responseId || `RES-${responseIndex + 1}`,
       submittedAt: formatFirestoreTimestamp(response.submittedAt),
