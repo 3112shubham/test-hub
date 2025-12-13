@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 
 export default function ImportSection({ importQuestions }) {
   const [topic, setTopic] = useState('');
@@ -82,7 +82,9 @@ IMPORTANT: Please provide the output in this exact JSON format:`;
     return fullPrompt.trim();
   };
 
-  const copyPrompt = () => {
+  const copyPrompt = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     const prompt = generatePrompt();
     navigator.clipboard.writeText(prompt);
     toast.success('Prompt copied to clipboard! 📋');
@@ -230,6 +232,7 @@ IMPORTANT: Please provide the output in this exact JSON format:`;
             {generatePrompt()}
           </pre>
           <button
+            type="button"
             onClick={copyPrompt}
             className="absolute top-4 right-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
           >

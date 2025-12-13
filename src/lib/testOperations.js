@@ -465,32 +465,34 @@ export const clearTestResponses = async (testId) => {
     const totalResponses = testData.totalResponses || 0;
     
     if (totalResponses === 0) {
-      // No responses to clear, just ensure counter is 0
-      await updateDoc(testRef, {
-        totalResponses: 0,
-        updatedAt: serverTimestamp(),
-      });
+      // No responses to clear
       return;
     }
 
     // Calculate how many batch documents exist
     const lastBatchNumber = getBatchNumber(totalResponses - 1);
     
-    // Delete all batch documents
-    const batch = writeBatch(db);
+    // Delete batch documents sequentially in small groups to avoid transaction size limit
+    const BATCH_SIZE = 10; // Delete 10 at a time
     
-    for (let i = 0; i <= lastBatchNumber; i++) {
-      const batchDocRef = getBatchDocRef(testId, i);
-      batch.delete(batchDocRef);
+    for (let i = 0; i <= lastBatchNumber; i += BATCH_SIZE) {
+      const batch = writeBatch(db);
+      const endIndex = Math.min(i + BATCH_SIZE - 1, lastBatchNumber);
+      
+      for (let j = i; j <= endIndex; j++) {
+        const batchDocRef = getBatchDocRef(testId, j);
+        batch.delete(batchDocRef);
+      }
+      
+      // Commit this small chunk
+      await batch.commit();
     }
 
-    // Reset response counter on test document
-    batch.update(testRef, {
+    // Finally, reset response counter on test document
+    await updateDoc(testRef, {
       totalResponses: 0,
       updatedAt: serverTimestamp(),
     });
-
-    await batch.commit();
   } catch (error) {
     console.error("Error clearing test responses:", error);
     throw error;
