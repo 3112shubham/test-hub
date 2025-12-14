@@ -698,6 +698,26 @@ export default function TestInterface({
                     renderQuestion(question, qIndex, false)
                   )}
                 </div>
+
+                <div className="flex justify-end pt-6 border-t border-blue-100">
+                  <button
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="bg-gradient-to-r from-[#6BBF59] to-[#00BCD4] hover:from-[#6BBF59]/90 hover:to-[#00BCD4]/90 text-white px-6 lg:px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="animate-spin h-5 w-5 text-white" />
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5" />
+                        <span>Submit Test</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             ) : (
               // Single Question View
@@ -721,7 +741,7 @@ export default function TestInterface({
 
                 {renderQuestion(questions[step], step, true)}
 
-                <div className="flex justify-between items-center pt-6 border-t border-blue-100">
+                <div className="flex justify-between items-center pt-6 border-t border-blue-100 gap-3">
                   <button
                     onClick={prev}
                     disabled={step === 0 && customFields.length === 0}
@@ -731,20 +751,11 @@ export default function TestInterface({
                     <span className="hidden sm:inline">Previous</span>
                   </button>
 
-                  {step < questions.length - 1 ? (
-                    <button
-                      onClick={next}
-                      className="bg-gradient-to-r from-[#1D4ED8] to-[#00BCD4] hover:from-[#1D4ED8]/90 hover:to-[#00BCD4]/90 text-white px-4 lg:px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center space-x-2"
-                    >
-                      <span className="hidden sm:inline">Next Question</span>
-                      <span className="sm:hidden">Next</span>
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  ) : (
+                  <div className="flex gap-3">
                     <button
                       onClick={handleSubmit}
                       disabled={loading}
-                      className="bg-gradient-to-r from-[#6BBF59] to-[#00BCD4] hover:from-[#6BBF59]/90 hover:to-[#00BCD4]/90 text-white px-6 lg:px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                      className="bg-gradient-to-r from-[#6BBF59] to-[#00BCD4] hover:from-[#6BBF59]/90 hover:to-[#00BCD4]/90 text-white px-4 lg:px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
                       {loading ? (
                         <>
@@ -758,7 +769,17 @@ export default function TestInterface({
                         </>
                       )}
                     </button>
-                  )}
+
+                    <button
+                      onClick={next}
+                      disabled={step === questions.length - 1}
+                      className="bg-gradient-to-r from-[#1D4ED8] to-[#00BCD4] hover:from-[#1D4ED8]/90 hover:to-[#00BCD4]/90 text-white px-4 lg:px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    >
+                      <span className="hidden sm:inline">Next Question</span>
+                      <span className="sm:hidden">Next</span>
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
