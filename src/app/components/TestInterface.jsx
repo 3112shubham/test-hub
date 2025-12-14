@@ -37,6 +37,8 @@ export default function TestInterface({
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submittedAt, setSubmittedAt] = useState(null);
+  const [shuffledQuestions, setShuffledQuestions] = useState([]);
+  const [questionIndexMap, setQuestionIndexMap] = useState({});
 
   // Use the same storage prefix as TestRunner so we read the same saved
   // customResponses for this test. Falls back to 'global' when id is absent.
@@ -44,6 +46,66 @@ export default function TestInterface({
     typeof window !== "undefined"
       ? `testRunner_${test?.id || test?._id || "global"}`
       : "testRunner_global";
+
+  // Fisher-Yates shuffle algorithm
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Shuffle questions on component mount - each user gets unique but consistent shuffle
+  useEffect(() => {
+    if (questions && questions.length > 0) {
+      const testId = test?.id || test?._id || "global";
+      const storageKey = `shuffleOrder_${testId}`;
+      
+      let shuffleOrder = null;
+      try {
+        const stored = localStorage.getItem(storageKey);
+        shuffleOrder = stored ? JSON.parse(stored) : null;
+      } catch (e) {
+        // ignore
+      }
+
+      let shuffled, indexMap;
+
+      if (shuffleOrder && shuffleOrder.length === questions.length) {
+        // Use stored shuffle order (same for this user's session)
+        shuffled = shuffleOrder.map(idx => questions[idx]);
+        indexMap = {};
+        shuffleOrder.forEach((originalIdx, shuffledIdx) => {
+          indexMap[shuffledIdx] = originalIdx;
+        });
+      } else {
+        // Create new random shuffle (different for each user)
+        shuffled = shuffleArray(questions);
+        
+        // Create a mapping from shuffled index to original index
+        indexMap = {};
+        shuffled.forEach((question, shuffledIdx) => {
+          const originalIdx = questions.findIndex(
+            (q) => q.question === question.question && q.type === question.type
+          );
+          indexMap[shuffledIdx] = originalIdx;
+        });
+
+        // Store the shuffle order for this user's session
+        const shuffleOrder = Object.values(indexMap);
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(shuffleOrder));
+        } catch (e) {
+          console.warn("Failed to store shuffle order", e);
+        }
+      }
+
+      setShuffledQuestions(shuffled);
+      setQuestionIndexMap(indexMap);
+    }
+  }, [questions, test.id, test._id]);
 
   // Close sidebar when step changes on mobile
   useEffect(() => {
@@ -147,7 +209,7 @@ export default function TestInterface({
         response: buildResponsesArray(),
         meta: {
           testName: test.testName || null,
-          totalQuestions: questions.length,
+          totalQuestions: displayQuestions.length,
         },
         status: "active",
         submittedAt: new Date(),
@@ -192,11 +254,13 @@ export default function TestInterface({
     }
   };
 
-  const getQuestionStatus = (qIndex) => {
-    const answer = answers[qIndex];
-    const question = questions[qIndex];
-    const isVisited = visitedQuestions.has(qIndex);
-    const isMarked = markedQuestions.has(qIndex);
+  const getQuestionStatus = (shuffledQIndex) => {
+    // Map from shuffled index to original index
+    const originalQIndex = questionIndexMap[shuffledQIndex] !== undefined ? questionIndexMap[shuffledQIndex] : shuffledQIndex;
+    const answer = answers[originalQIndex];
+    const question = displayQuestions[shuffledQIndex];
+    const isVisited = visitedQuestions.has(shuffledQIndex);
+    const isMarked = markedQuestions.has(shuffledQIndex);
 
     if (isMarked) return "marked";
     if (!isVisited) return "not-visited";
@@ -206,14 +270,16 @@ export default function TestInterface({
     return "answered";
   };
 
-  const renderQuestion = (question, qIndex, isSingleView = true) => {
-    const currentAnswer = answers[qIndex];
-    const questionNumber = isSingleView ? step + 1 : qIndex + 1;
-    const isMarked = markedQuestions.has(qIndex);
+  const renderQuestion = (question, shuffledQIndex, isSingleView = true) => {
+    // Map from shuffled index to original index for answer storage
+    const originalQIndex = questionIndexMap[shuffledQIndex] !== undefined ? questionIndexMap[shuffledQIndex] : shuffledQIndex;
+    const currentAnswer = answers[originalQIndex];
+    const questionNumber = isSingleView ? step + 1 : shuffledQIndex + 1;
+    const isMarked = markedQuestions.has(shuffledQIndex);
 
     return (
       <div
-        key={qIndex}
+        key={shuffledQIndex}
         className={`p-4 lg:p-6 border-2 rounded-xl bg-white transition-all duration-200 ${
           isMarked
             ? "border-purple-600 bg-[#6BBF59]/5 shadow-md"
@@ -230,7 +296,7 @@ export default function TestInterface({
             </h4>
           </div>
           <button
-            onClick={() => toggleMarkQuestion(qIndex)}
+            onClick={() => toggleMarkQuestion(shuffledQIndex)}
             className={`flex-shrink-0 ml-4 p-2 rounded-lg transition-colors ${
               isMarked
                 ? "bg-purple-100 text-purple-500 hover:bg-purple-300"
@@ -250,7 +316,7 @@ export default function TestInterface({
               return (
                 <button
                   key={oi}
-                  onClick={() => handleAnswer(qIndex, oi, "mcq")}
+                  onClick={() => handleAnswer(originalQIndex, oi, "mcq")}
                   className={`text-left p-3 lg:p-4 rounded-xl border-2 transition-all duration-200 group ${
                     selected
                       ? "border-[#1D4ED8] bg-gradient-to-r from-[#1D4ED8]/10 to-[#00BCD4]/5 text-[#1D4ED8] shadow-sm"
@@ -287,7 +353,7 @@ export default function TestInterface({
               return (
                 <button
                   key={oi}
-                  onClick={() => handleAnswer(qIndex, oi, "multiple")}
+                  onClick={() => handleAnswer(originalQIndex, oi, "multiple")}
                   className={`text-left p-3 lg:p-4 rounded-xl border-2 transition-all duration-200 group ${
                     selected
                       ? "border-[#6BBF59] bg-gradient-to-r from-[#6BBF59]/10 to-[#6BBF59]/5 text-[#6BBF59] shadow-sm"
@@ -326,7 +392,7 @@ export default function TestInterface({
               return (
                 <button
                   key={oi}
-                  onClick={() => handleAnswer(qIndex, oi, "truefalse")}
+                  onClick={() => handleAnswer(originalQIndex, oi, "truefalse")}
                   className={`p-4 lg:p-6 rounded-xl border-2 text-center font-medium transition-all duration-200 group ${
                     selected
                       ? "border-[#00BCD4] bg-gradient-to-r from-[#00BCD4]/10 to-[#00BCD4]/5 text-[#00BCD4] shadow-sm"
@@ -360,7 +426,7 @@ export default function TestInterface({
           <div className="ml-0 lg:ml-11">
             <textarea
               value={currentAnswer || ""}
-              onChange={(e) => handleAnswer(qIndex, e.target.value, "text")}
+              onChange={(e) => handleAnswer(originalQIndex, e.target.value, "text")}
               className="w-full px-4 py-3 border-2 border-blue-100 rounded-xl focus:ring-2 focus:ring-[#00BCD4] focus:border-[#00BCD4] transition-all duration-200 resize-vertical bg-white hover:border-[#00BCD4] focus:bg-blue-25"
               rows={4}
               placeholder="Type your detailed answer here..."
@@ -400,7 +466,8 @@ export default function TestInterface({
     );
   };
 
-  const progress = ((step + 1) / questions.length) * 100;
+  const progress = ((step + 1) / shuffledQuestions.length) * 100;
+  const displayQuestions = shuffledQuestions.length > 0 ? shuffledQuestions : questions;
 
   return (
     <>
@@ -493,9 +560,9 @@ export default function TestInterface({
             </div>
             <div className="flex justify-between text-xs text-gray-500 mt-1">
               <span>
-                {step + 1} of {questions.length}
+                {step + 1} of {displayQuestions.length}
               </span>
-              <span>{questions.length - (step + 1)} left</span>
+              <span>{displayQuestions.length - (step + 1)} left</span>
             </div>
           </div>
 
@@ -506,7 +573,7 @@ export default function TestInterface({
                 Questions
               </h3>
               <div className="grid grid-cols-5 gap-3">
-                {questions.map((_, qIndex) => {
+                {displayQuestions.map((_, qIndex) => {
                   const status = getQuestionStatus(qIndex);
                   const isCurrent = qIndex === step;
 
@@ -623,7 +690,7 @@ export default function TestInterface({
                   {test.testName}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  Question {step + 1} of {questions.length}
+                  Question {step + 1} of {displayQuestions.length}
                 </p>
               </div>
               <div className="flex items-center justify-center w-19">
@@ -694,7 +761,7 @@ export default function TestInterface({
                 </div>
 
                 <div className="space-y-6 lg:space-y-8">
-                  {questions.map((question, qIndex) =>
+                  {displayQuestions.map((question, qIndex) =>
                     renderQuestion(question, qIndex, false)
                   )}
                 </div>
@@ -724,7 +791,7 @@ export default function TestInterface({
               <div className="space-y-6">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-gray-800">
-                    Question {step + 1} of {questions.length}
+                    Question {step + 1} of {displayQuestions.length}
                   </h3>
                   <div className="flex items-center space-x-4">
                     <button
@@ -739,7 +806,7 @@ export default function TestInterface({
                   </div>
                 </div>
 
-                {renderQuestion(questions[step], step, true)}
+                {renderQuestion(displayQuestions[step], step, true)}
 
                 <div className="flex justify-between items-center pt-6 border-t border-blue-100 gap-3">
                   <button
@@ -772,7 +839,7 @@ export default function TestInterface({
 
                     <button
                       onClick={next}
-                      disabled={step === questions.length - 1}
+                      disabled={step === displayQuestions.length - 1}
                       className="bg-gradient-to-r from-[#1D4ED8] to-[#00BCD4] hover:from-[#1D4ED8]/90 hover:to-[#00BCD4]/90 text-white px-4 lg:px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
                       <span className="hidden sm:inline">Next Question</span>
