@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const TEST_ID = "BYObsemjE5M68VWGLqdd";
+const TEST_ID = "IM6ziLwRbXo4EsQ8qPtd";
 
 const QUESTIONS = [
   { type: "mcq", options: 4 },
@@ -27,7 +27,7 @@ const QUESTIONS = [
 
 function randomEmail() {
   const id = Math.random().toString(36).substring(2, 10);
-  return `${id}@gmail.com`;
+  return `ajay@gmail.com`;
 }
 
 function randomMCQ(options) {
@@ -75,7 +75,7 @@ async function sendSubmission(i) {
 
   try {
     const res = await axios.post(
-      "http://localhost:3000/api/test-submissions",
+      "https://test-hub-5tlx.vercel.app/api/test-submissions",
       body
     );
 
@@ -90,7 +90,7 @@ async function sendSubmission(i) {
 }
 
 async function run() {
-  for (let i = 0; i < 1000; i++) {
+  for (let i = 0; i < 2; i++) {
     await sendSubmission(i);
   }
 }
