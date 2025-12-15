@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   getUserTests,
   deleteTest,
@@ -23,8 +23,10 @@ import {
   X,
   Delete,
   FileText,
+  Mail,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import * as XLSX from "xlsx";
 
 export default function ViewTests() {
   const [tests, setTests] = useState([]);
@@ -42,6 +44,9 @@ export default function ViewTests() {
     removedQuestions: [], // Questions to be removed
   });
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [uploadingEmails, setUploadingEmails] = useState(false);
+  const [syncingEmails, setSyncingEmails] = useState(false);
+  const emailFileInputRef = useRef(null);
 
   // Load tests from Firestore
   useEffect(() => {
@@ -137,6 +142,185 @@ export default function ViewTests() {
     toast.success(showAnswers ? "Answer key exported successfully!" : "Question paper exported successfully!");
   };
 
+  const handleEmailUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedTest) {
+      toast.error("Please select a test and file");
+      return;
+    }
+
+    try {
+      setUploadingEmails(true);
+      const loadingToast = toast.loading("Processing emails...");
+
+      // Read file based on type
+      let newEmails = [];
+      
+      if (file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || 
+          file.type === "application/vnd.ms-excel" ||
+          file.name.endsWith(".xlsx") || 
+          file.name.endsWith(".xls")) {
+        // Excel file
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer);
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: "A" });
+        
+        // Extract emails from first column, starting from row 2
+        newEmails = jsonData
+          .slice(1) // Skip header (row 1)
+          .map((row) => row.A)
+          .filter((email) => email && typeof email === "string" && email.trim())
+          .map((email) => email.trim().toLowerCase());
+      } else if (file.type === "text/csv" || file.name.endsWith(".csv")) {
+        // CSV file
+        const text = await file.text();
+        const lines = text.split("\n");
+        newEmails = lines
+          .slice(1) // Skip header
+          .map((line) => line.split(",")[0].trim().toLowerCase()) // Get first column
+          .filter((email) => email && email.length > 0);
+      } else if (file.type === "text/plain" || file.name.endsWith(".txt")) {
+        // Text file - one email per line, skip first line
+        const text = await file.text();
+        newEmails = text
+          .split("\n")
+          .slice(1) // Skip first line (header)
+          .map((line) => line.trim().toLowerCase())
+          .filter((email) => email && email.length > 0);
+      } else {
+        toast.error("Unsupported file type. Please upload CSV, Excel, or TXT file", {
+          id: loadingToast,
+        });
+        return;
+      }
+
+      if (newEmails.length === 0) {
+        toast.error("No emails found in the file", { id: loadingToast });
+        return;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const validNewEmails = newEmails.filter((email) => emailRegex.test(email));
+      const invalidCount = newEmails.length - validNewEmails.length;
+
+      if (validNewEmails.length === 0) {
+        toast.error("No valid emails found", { id: loadingToast });
+        return;
+      }
+
+      // Get existing emails and merge with new ones
+      const existingEmails = selectedTest.emails || [];
+      const existingEmailsLower = existingEmails.map((email) => email.toLowerCase());
+      
+      // Find truly new emails (not in existing list)
+      const trulyNewEmails = validNewEmails.filter(
+        (email) => !existingEmailsLower.includes(email)
+      );
+
+      // Merge: keep existing emails + add new ones
+      const mergedEmails = [...existingEmails, ...trulyNewEmails];
+
+      if (mergedEmails.length === existingEmails.length && trulyNewEmails.length > 0) {
+        toast.info("All emails already exist", { id: loadingToast });
+        return;
+      }
+
+      // Update test with merged emails
+      await updateTest(selectedTest.id, {
+        ...selectedTest,
+        emails: mergedEmails,
+      });
+
+      // Update local state
+      setTests((prev) =>
+        prev.map((t) =>
+          t.id === selectedTest.id ? { ...t, emails: mergedEmails } : t
+        )
+      );
+      setSelectedTest((s) => ({ ...s, emails: mergedEmails }));
+
+      const duplicateCount = validNewEmails.length - trulyNewEmails.length;
+      const message = `Added ${trulyNewEmails.length} new email${trulyNewEmails.length !== 1 ? "s" : ""}. Total: ${mergedEmails.length}${
+        duplicateCount > 0 ? ` (${duplicateCount} duplicates skipped)` : ""
+      }${invalidCount > 0 ? ` (${invalidCount} invalid emails skipped)` : ""}`;
+      
+      toast.success(message, { id: loadingToast });
+      
+      // Reset file input
+      if (emailFileInputRef.current) {
+        emailFileInputRef.current.value = "";
+      }
+    } catch (error) {
+      console.error("Error uploading emails:", error);
+      toast.error("Failed to upload emails: " + error.message);
+    } finally {
+      setUploadingEmails(false);
+    }
+  };
+
+  const handleSyncEmailsToMongoDB = async () => {
+    if (!selectedTest) {
+      toast.error("Please select a test first");
+      return;
+    }
+
+    const emails = selectedTest.emails || [];
+    if (emails.length === 0) {
+      toast.error("No emails to sync. Please upload emails first.");
+      return;
+    }
+
+    try {
+      setSyncingEmails(true);
+      const loadingToast = toast.loading("Syncing emails to MongoDB...");
+
+      const response = await fetch("/api/sync-emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          testId: selectedTest.id,
+          emails: emails,
+          testName: selectedTest.testName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Failed to sync emails", { id: loadingToast });
+        return;
+      }
+
+      // Update local state to reflect sync status
+      setTests((prev) =>
+        prev.map((t) =>
+          t.id === selectedTest.id
+            ? { ...t, emailsSyncedToMongoDB: true, lastEmailSyncAt: new Date() }
+            : t
+        )
+      );
+      setSelectedTest((s) => ({
+        ...s,
+        emailsSyncedToMongoDB: true,
+        lastEmailSyncAt: new Date(),
+      }));
+
+      toast.success(
+        `${data.message} (${data.mongoOperation === "created" ? "New collection created" : "Updated existing"})`,
+        { id: loadingToast }
+      );
+    } catch (error) {
+      console.error("Error syncing emails:", error);
+      toast.error("Failed to sync emails: " + error.message);
+    } finally {
+      setSyncingEmails(false);
+    }
+  };
+
   const handlePublish = async () => {
     if (!selectedTest) return;
     try {
@@ -149,6 +333,57 @@ export default function ViewTests() {
       );
       setSelectedTest((s) => ({ ...s, status: "active" }));
       toast.success("Test published. You can now copy the link to share it.");
+
+      // Automatically sync emails if they exist
+      const emails = selectedTest.emails || [];
+      if (emails.length > 0) {
+        try {
+          setSyncingEmails(true);
+          const syncLoadingToast = toast.loading("Auto-syncing emails to MongoDB...");
+
+          const response = await fetch("/api/sync-emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              testId: selectedTest.id,
+              emails: emails,
+              testName: selectedTest.testName,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            // Update local state to reflect sync status
+            setTests((prev) =>
+              prev.map((t) =>
+                t.id === selectedTest.id
+                  ? { ...t, emailsSyncedToMongoDB: true, lastEmailSyncAt: new Date() }
+                  : t
+              )
+            );
+            setSelectedTest((s) => ({
+              ...s,
+              emailsSyncedToMongoDB: true,
+              lastEmailSyncAt: new Date(),
+            }));
+
+            toast.success(
+              `Emails auto-synced (${data.mongoOperation === "created" ? "New collection created" : "Updated existing"})`,
+              { id: syncLoadingToast }
+            );
+          } else {
+            toast.error("Could not auto-sync emails", { id: syncLoadingToast });
+          }
+        } catch (error) {
+          console.error("Error auto-syncing emails:", error);
+          toast.error("Could not auto-sync emails: " + error.message);
+        } finally {
+          setSyncingEmails(false);
+        }
+      }
     } catch (error) {
       console.error(error);
       toast.error("Failed to publish test. Please try again.");
@@ -544,14 +779,26 @@ export default function ViewTests() {
                         <button
                           onClick={async () => {
                             if (!selectedTest) return;
-                            if (!confirm('Are you sure you want to clear all responses for this test? This action cannot be undone.')) return;
+                            if (!confirm('Are you sure you want to clear all responses and emails for this test? This action cannot be undone.')) return;
                             try {
                               setLoading(true);
                               await clearTestResponses(selectedTest.id);
-                              // Update local state
-                              setSelectedTest((s) => ({ ...s, responses: [], totalResponses: 0 }));
-                              setTests((prev) => prev.map((t) => (t.id === selectedTest.id ? { ...t, responses: [], totalResponses: 0 } : t)));
-                              toast.success('Responses cleared for this test');
+                              // Update local state - clear responses, emails, and sync status
+                              setSelectedTest((s) => ({ 
+                                ...s, 
+                                responses: [], 
+                                totalResponses: 0,
+                                emails: [],
+                                emailsSyncedToMongoDB: false
+                              }));
+                              setTests((prev) => prev.map((t) => (t.id === selectedTest.id ? { 
+                                ...t, 
+                                responses: [], 
+                                totalResponses: 0,
+                                emails: [],
+                                emailsSyncedToMongoDB: false
+                              } : t)));
+                              toast.success('Responses and emails cleared for this test');
                             } catch (err) {
                               console.error('Failed to clear responses', err);
                               toast.error('Failed to clear responses');
@@ -581,6 +828,34 @@ export default function ViewTests() {
                         <FileText size={16} />
                         <span>Answer Key</span>
                       </button>
+
+                      <button
+                        onClick={() => emailFileInputRef.current?.click()}
+                        disabled={uploadingEmails}
+                        className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-indigo-700 hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Upload emails from CSV, Excel, or TXT file"
+                      >
+                        <Mail size={16} />
+                        <span>{uploadingEmails ? "Uploading..." : "Upload Emails"}</span>
+                      </button>
+
+                      <button
+                        onClick={handleSyncEmailsToMongoDB}
+                        disabled={syncingEmails || !selectedTest?.emails?.length}
+                        className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-orange-700 hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Sync emails to MongoDB collection"
+                      >
+                        <RefreshCcw size={16} />
+                        <span>{syncingEmails ? "Syncing..." : "Sync Emails"}</span>
+                      </button>
+
+                      <input
+                        ref={emailFileInputRef}
+                        type="file"
+                        accept=".csv,.xlsx,.xls,.txt"
+                        onChange={handleEmailUpload}
+                        style={{ display: "none" }}
+                      />
                        
                       </div>
                        {/* Duplicate Test Button */}

@@ -1,7 +1,7 @@
 // lib/firebaseConfig.js
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, serverTimestamp, writeBatch, doc } from "firebase/firestore";
+import { getFirestore, serverTimestamp, writeBatch, doc, enableNetwork, disableNetwork } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -15,4 +15,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export { serverTimestamp, writeBatch, doc };
+
+// Configure Firestore for better connectivity
+try {
+  // Set aggressive timeouts for Firestore
+  if (typeof window !== 'undefined') {
+    // Re-enable network on load (in case it was disabled)
+    enableNetwork(db).catch(e => console.log('Enable network error:', e.message));
+  }
+} catch (e) {
+  console.log('Firestore config error:', e.message);
+}
+
+export { serverTimestamp, writeBatch, doc, enableNetwork, disableNetwork };

@@ -44,3 +44,8 @@ export async function getTestsCollection() {
   const client = await clientPromise;
   return client.db("test-hub").collection("tests");
 }
+
+export async function getEmailsCollection() {
+  const client = await clientPromise;
+  return client.db("test-hub").collection("emails");
+}

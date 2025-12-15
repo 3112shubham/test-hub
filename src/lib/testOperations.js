@@ -56,9 +56,10 @@ import {
   increment,
   collectionGroup,
   writeBatch,
+  enableNetwork,
+  disableNetwork,
 } from "firebase/firestore";
-import { db } from "./firebaseConfig";
-import { auth } from "./firebaseConfig";
+import { db, auth } from "./firebaseConfig";
 
 const RESPONSES_PER_BATCH = 100;
 
@@ -348,12 +349,41 @@ export const getUserTestsSimple = async () => {
 // Get a single test by ID
 export const getTestById = async (testId) => {
   const docRef = doc(db, "tests", testId);
-  const docSnap = await getDoc(docRef);
+  
+  try {
+    // Create a promise that rejects after timeout
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Firestore read timeout (15s)')), 15000)
+    );
 
-  if (docSnap.exists()) {
-    return { id: docSnap.id, ...docSnap.data() };
-  } else {
-    throw new Error("Test not found");
+    // Race between getDoc and timeout
+    const docSnap = await Promise.race([
+      getDoc(docRef),
+      timeoutPromise
+    ]);
+
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() };
+    } else {
+      throw new Error("Test not found");
+    }
+  } catch (error) {
+    // Log the specific error
+    console.error('getTestById error:', error.message);
+    
+    // If timeout, try to reset Firebase connection
+    if (error.message.includes('timeout') || error.message.includes('PERMISSION_DENIED')) {
+      try {
+        // Disable and re-enable network to reset connection
+        await disableNetwork(db).catch(() => {});
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await enableNetwork(db).catch(() => {});
+      } catch (e) {
+        console.log('Connection reset error:', e.message);
+      }
+    }
+    
+    throw error;
   }
 };
 
@@ -443,7 +473,32 @@ export const updateTest = async (testId, updateData) => {
 // Delete a test
 export const deleteTest = async (testId) => {
   try {
+    // Delete from Firestore
     await deleteDoc(doc(db, "tests", testId));
+
+    // Also delete the emails document from MongoDB
+    try {
+      const response = await fetch("/api/delete-emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          testId: testId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error deleting emails from MongoDB:", errorData);
+      } else {
+        const data = await response.json();
+        console.log("Emails deleted from MongoDB:", data);
+      }
+    } catch (error) {
+      console.error("Error deleting emails from MongoDB:", error);
+      // Don't throw - Firestore deletion was successful, just log MongoDB deletion error
+    }
   } catch (error) {
     console.error("Error deleting test:", error);
     throw error;
@@ -488,11 +543,36 @@ export const clearTestResponses = async (testId) => {
       await batch.commit();
     }
 
-    // Finally, reset response counter on test document
+    // Finally, reset response counter and clear emails on test document
     await updateDoc(testRef, {
       totalResponses: 0,
+      emails: [], // Clear emails array
       updatedAt: serverTimestamp(),
     });
+
+    // Also delete the test document from MongoDB emails collection
+    try {
+      const response = await fetch("/api/delete-emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          testId: testId,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error deleting emails from MongoDB:", errorData);
+      } else {
+        const data = await response.json();
+        console.log("Emails deleted from MongoDB:", data);
+      }
+    } catch (error) {
+      console.error("Error deleting emails from MongoDB:", error);
+      // Don't throw - Firestore clearing was successful, just log MongoDB deletion error
+    }
   } catch (error) {
     console.error("Error clearing test responses:", error);
     throw error;
