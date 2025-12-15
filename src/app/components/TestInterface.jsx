@@ -179,8 +179,8 @@ export default function TestInterface({
   };
 
   const prev = () => {
-    if (step === 0 && customFields.length > 0) setStep(-1);
-    else if (step > 0) setStep(step - 1);
+    if (step > 0) setStep(step - 1);
+    // Prevent navigation back to sign-in after test starts
   };
 
   const buildResponsesArray = () => {
@@ -222,6 +222,32 @@ export default function TestInterface({
       });
 
       if (!res.ok) throw new Error("Submission failed");
+
+      // Mark email as submitted in MongoDB if email exists in custom responses
+      try {
+        const customResponses = JSON.parse(
+          localStorage.getItem(`${storagePrefix}_customResponses`) || "{}"
+        );
+        const emailField = Object.values(customResponses).find(v => 
+          v && typeof v === 'string' && v.includes('@')
+        );
+        
+        if (emailField && test.emails && test.emails.length > 0) {
+          await fetch("/api/mark-email-submitted", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              testId: test.id?.toString(),
+              email: emailField,
+            }),
+          }).catch(e => {
+            console.log("Note: Could not mark email as submitted", e.message);
+            // Don't fail the submission if email marking fails
+          });
+        }
+      } catch (e) {
+        console.log("Note: Could not retrieve custom responses for email marking", e.message);
+      }
 
       // persist submission locally so returning users see the submitted state
       const stored = {
@@ -811,7 +837,7 @@ export default function TestInterface({
                 <div className="flex justify-between items-center pt-6 border-t border-blue-100 gap-3">
                   <button
                     onClick={prev}
-                    disabled={step === 0 && customFields.length === 0}
+                    disabled={step === 0}
                     className="px-4 lg:px-6 py-3 border-2 border-blue-100 rounded-xl text-gray-700 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                   >
                     <ChevronLeft className="w-5 h-5" />

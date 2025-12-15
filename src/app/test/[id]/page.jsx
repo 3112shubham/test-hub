@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { getTestById } from "@/lib/testOperations";
+import { auth, db, disableNetwork, enableNetwork } from "@/lib/firebaseConfig";
 import TestRunner from "./TestRunner";
 
 export default function Page() {
@@ -30,20 +31,35 @@ export default function Page() {
     updateLoadingTime();
 
     const loadWithRetry = async (retryCount = 0) => {
-      const maxRetries = 2;
-      const timeout = 45000; // 45 seconds timeout
+      const maxRetries = 4;
+      const timeout = 10000; // 10 seconds
 
       try {
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error(`Request timed out after ${timeout/1000} seconds`)), timeout)
-        );
-        const dataPromise = getTestById(id);
-        const data = await Promise.race([dataPromise, timeoutPromise]);
+        // Use API endpoint instead of direct Firestore (more reliable)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+        const response = await fetch(`/api/get-test?id=${id}&t=${Date.now()}`, {
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
         return data;
       } catch (err) {
+        console.error(`Load attempt ${retryCount + 1} failed:`, err.message);
+        
         if (retryCount < maxRetries) {
-          // Wait 2 seconds before retrying
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Exponential backoff: 300ms, 600ms, 1.2s, 2.4s
+          const delay = Math.min(300 * Math.pow(2, retryCount), 3000);
+          await new Promise(resolve => setTimeout(resolve, delay));
           return loadWithRetry(retryCount + 1);
         }
         throw err;
@@ -52,6 +68,7 @@ export default function Page() {
 
     const load = async () => {
       setLoading(true);
+      setError(null);
       try {
         const data = await loadWithRetry();
         if (!mounted) return;
@@ -72,7 +89,15 @@ export default function Page() {
         }
       } catch (err) {
         console.error("Error fetching test:", err);
-        setError(String(err));
+        
+        // Provide more specific error messages
+        if (err.message.includes("timeout")) {
+          setError("Network timeout. Please check your internet connection and try again.");
+        } else if (err.message.includes("not found")) {
+          setError("Test not found. Please check the test ID.");
+        } else {
+          setError(String(err));
+        }
       } finally {
         if (mounted) {
           setLoading(false);
@@ -95,24 +120,65 @@ export default function Page() {
           <div className="animate-spin w-12 h-12 mb-4 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
           <div className="text-xl font-semibold text-gray-800 mb-2">Loading test...</div>
           <div className="text-gray-600 mb-4">
-            Time elapsed: {loadingTime} seconds
-            {loadingTime >= 10 && (
-              <div className="mt-2 text-sm text-amber-600">
-                This is taking longer than usual. Please wait...
+            <div className="text-sm">Time elapsed: {loadingTime} seconds</div>
+            {loadingTime < 2 && (
+              <div className="mt-2 text-xs text-gray-500">
+                Fetching test...
               </div>
             )}
-            {loadingTime >= 20 && (
+            {loadingTime >= 2 && loadingTime < 6 && (
+              <div className="mt-2 text-xs text-gray-500">
+                Loading questions...
+              </div>
+            )}
+            {loadingTime >= 6 && loadingTime < 10 && (
+              <div className="mt-2 text-sm text-amber-600">
+                ⚠️ Taking longer than usual...
+              </div>
+            )}
+            {loadingTime >= 10 && (
               <div className="mt-2 text-sm text-red-600">
-                Still loading... You can try refreshing the page if this persists.
+                ❌ Connection issues detected
               </div>
             )}
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Refresh Page
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+              Refresh Page
+            </button>
+            {loadingTime >= 10 && (
+              <button
+                onClick={async () => {
+                  // Reset Firebase network connection
+                  try {
+                    await disableNetwork(db);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    await enableNetwork(db);
+                  } catch (e) {
+                    console.log('Network reset error:', e.message);
+                  }
+                  
+                  // Clear all storage
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  
+                  // Sign out to reset auth state
+                  try {
+                    await auth.signOut().catch(() => {});
+                  } catch (e) {}
+                  
+                  // Hard reload with cache bust
+                  window.location.href = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 't=' + Date.now();
+                }}
+                className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium"
+              >
+                🔄 Reset Connection
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -122,35 +188,62 @@ export default function Page() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
-          <h2 className="text-2xl font-semibold text-red-600 mb-4">Error Loading Test</h2>
+          <h2 className="text-2xl font-semibold text-red-600 mb-4">⚠️ Connection Error</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           
           {error.includes("timeout") && (
             <>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 mb-4 text-sm">
                 This could be due to:
-                <ul className="list-disc ml-6 mt-2 space-y-1">
-                  <li>Slow internet connection</li>
-                  <li>Server is temporarily busy</li>
-                  <li>Large test data</li>
-                </ul>
               </p>
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => window.location.reload()}
-                  className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Try Again
-                </button>
-                <button
-                  onClick={() => router.push('/')}
-                  className="w-full py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Go Back
-                </button>
-              </div>
+              <ul className="list-disc ml-6 mb-4 space-y-1 text-sm text-gray-600">
+                <li>Slow internet connection</li>
+                <li>Server is temporarily busy</li>
+                <li>Browser cache issues</li>
+              </ul>
             </>
           )}
+          
+          <div className="space-y-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Try Again
+            </button>
+            
+            <button
+              onClick={async () => {
+                try {
+                  // Reset Firebase network connection
+                  await disableNetwork(db);
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  await enableNetwork(db);
+                } catch (e) {
+                  console.log('Network reset error:', e.message);
+                }
+                
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                try {
+                  await auth.signOut().catch(() => {});
+                } catch (e) {}
+                
+                window.location.href = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 't=' + Date.now();
+              }}
+              className="w-full py-2 px-4 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium"
+            >
+              🔄 Reset & Retry
+            </button>
+            
+            <button
+              onClick={() => router.push('/user')}
+              className="w-full py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              Back to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );
